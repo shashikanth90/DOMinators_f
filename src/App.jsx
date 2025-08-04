@@ -5,17 +5,13 @@ import SparkLine from "@/components/charts/SparkLine";
 import ColumnChart from "./components/charts/ColumnChart";
 import CandleStickChart from "./components/charts/CandleStickChart";
 import SimplePie from "./components/charts/SimplePie";
+import BrowseAssets from "./components/BrowseAssets";
 
 function App() {
 
   return (
     <>
-      <LineChart />
-      <PieChart />
-      {/* <SparkLine /> */}
-      <ColumnChart />
-      <CandleStickChart />
-      <SimplePie />
+      <BrowseAssets />
     </>
   )
 }
