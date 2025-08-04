@@ -56,6 +56,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [timeframe, setTimeframe] = useState('1M');
   const [performanceTab, setPerformanceTab] = useState('value');
+  const [settlementsBalance, setSettlementsBalance] = useState(null);
 
   // Fetch dashboard data
   useEffect(() => {
@@ -88,6 +89,15 @@ export default function Dashboard() {
         }));
         
         setTransactions(processedTransactions);
+
+        // settlements balance
+        const settlementsResponse = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/settlements/viewBalance`);
+        console.log('Settlements Response:', settlementsResponse.data);
+        if (settlementsResponse.data && settlementsResponse.data.length > 0) {
+          setSettlementsBalance(parseFloat(settlementsResponse.data[0].amount));
+          console.log('Settlements Balance:', settlementsResponse.data[0].amount);
+        }
+
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
         // Use fallback mock data for demo purposes
@@ -577,6 +587,39 @@ export default function Dashboard() {
                 <div className="flex items-center gap-1">
                   <Calendar className="h-3.5 w-3.5" />
                   <span>Last 30 days</span>
+                </div>
+              )}
+            </CardFooter>
+          </Card>
+        </motion.div>
+
+        {/* Settlements Balance Card */}
+        <motion.div variants={itemVariants} className="col-span-1">
+          <Card className="overflow-hidden border-t-4 border-t-teal-500">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-gray-500 flex items-center gap-2">
+                <BadgeDollarSign className="h-4 w-4 text-teal-500" />
+                Cash Balance
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <Skeleton className="h-8 w-36" />
+              ) : (
+                <div className="flex items-baseline gap-2">
+                  <div className="text-3xl font-bold">
+                    ${settlementsBalance?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+            <CardFooter className="pt-0 text-xs text-gray-500">
+              {loading ? (
+                <Skeleton className="h-4 w-24" />
+              ) : (
+                <div className="flex items-center gap-1">
+                  <DollarSign className="h-3.5 w-3.5" />
+                  <span>Available for investment</span>
                 </div>
               )}
             </CardFooter>
