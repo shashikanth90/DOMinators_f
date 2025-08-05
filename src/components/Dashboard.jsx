@@ -526,7 +526,7 @@ export default function Dashboard() {
         </motion.div>
         
         {/* Holdings Count Card */}
-        <motion.div variants={itemVariants} className="col-span-1">
+        {/* <motion.div variants={itemVariants} className="col-span-1">
           <Card className="overflow-hidden border-t-4 border-t-purple-500">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-gray-500 flex items-center gap-2">
@@ -557,10 +557,10 @@ export default function Dashboard() {
               )}
             </CardFooter>
           </Card>
-        </motion.div>
+        </motion.div> */}
         
         {/* Transactions Card */}
-        <motion.div variants={itemVariants} className="col-span-1">
+        {/* <motion.div variants={itemVariants} className="col-span-1">
           <Card className="overflow-hidden border-t-4 border-t-amber-500">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-gray-500 flex items-center gap-2">
@@ -591,7 +591,7 @@ export default function Dashboard() {
               )}
             </CardFooter>
           </Card>
-        </motion.div>
+        </motion.div> */}
 
         {/* Settlements Balance Card */}
         <motion.div variants={itemVariants} className="col-span-1">
