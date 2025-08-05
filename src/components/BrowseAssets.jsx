@@ -1,4 +1,4 @@
- import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -58,28 +58,50 @@ export default function BrowseAssets() {
   const [purchaseResult, setPurchaseResult] = useState({ success: false, message: '' });
   const [isProcessing, setIsProcessing] = useState(false);
   
-  // Mock user data - in real app this would come from your backend/auth
+  // User data - account balance will be fetched from API
   const [userData, setUserData] = useState({
-    accountBalance: 50000.00,
+    accountBalance: 0,
     securityPin: '1234'
   });
   
   const assetTypes = ['All', 'Stock', 'Mutual Fund', 'Bond', 'Cash', 'Other'];
   
+  // Function to fetch account balance
+  const fetchAccountBalance = async () => {
+    try {
+      const settlementsResponse = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/settlements/viewBalance`);
+      console.log('Settlements Response:', settlementsResponse.data);
+      if (settlementsResponse.data && settlementsResponse.data.length > 0) {
+        setUserData(prev => ({
+          ...prev,
+          accountBalance: parseFloat(settlementsResponse.data[0].amount)
+        }));
+        console.log('Settlements Balance:', settlementsResponse.data[0].amount);
+      }
+    } catch (error) {
+      console.error('Error fetching account balance:', error);
+    }
+  };
+  
   useEffect(() => {
-    const fetchAssets = async () => {
+    const fetchData = async () => {
       setLoading(true);
       try {
-        const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/assets/get-all`);        setAssets(response.data);
-        setFilteredAssets(response.data);
+        // Fetch assets
+        const assetsResponse = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/assets/get-all`);
+        setAssets(assetsResponse.data);
+        setFilteredAssets(assetsResponse.data);
+        
+        // Fetch account balance
+        await fetchAccountBalance();
       } catch (error) {
-        console.error('Error fetching assets:', error);
+        console.error('Error fetching data:', error);
       } finally {
         setLoading(false);
       }
     };
     
-    fetchAssets();
+    fetchData();
   }, []);
   
   useEffect(() => {
@@ -135,11 +157,49 @@ export default function BrowseAssets() {
     return parseFloat(selectedAsset.price) * quantity;
   };
 
-  const handleProceedToBuy = () => {
-    setShowBuyModal(false);
-    setShowPinModal(true);
-    setPin('');
-    setPinError('');
+  const handleProceedToBuy = async () => {
+    if (!selectedAsset) return;
+    
+    setIsProcessing(true);
+    
+    try {
+      const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/holdings/buy`, {
+        asset_id: selectedAsset.id,
+        quantity: quantity
+      });
+      
+      console.log('Purchase Response:', response.data);
+      
+      // If purchase is successful, refresh account balance
+      await fetchAccountBalance();
+      
+      setPurchaseResult({
+        success: true,
+        message: `Successfully purchased ${quantity} ${quantity > 1 ? 'units' : 'unit'} of ${selectedAsset.name}`
+      });
+      
+      setShowBuyModal(false);
+      setShowResultModal(true);
+    } catch (error) {
+      console.error('Error making purchase:', error);
+      
+      let errorMessage = 'Purchase failed. Please try again.';
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      }
+      
+      setPurchaseResult({
+        success: false,
+        message: errorMessage
+      });
+      
+      setShowBuyModal(false);
+      setShowResultModal(true);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const handlePinSubmit = async () => {
@@ -486,10 +546,9 @@ export default function BrowseAssets() {
                   ${parseFloat(selectedAsset.price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
               </div>
-
-              {/* Quantity Selector */}
+              
               <div className="flex justify-between items-center py-2 border-b">
-                <span className="font-medium">Quantity</span>
+                <span>Quantity</span>
                 <div className="flex items-center gap-3">
                   <Button
                     variant="outline"
@@ -511,43 +570,41 @@ export default function BrowseAssets() {
                   </Button>
                 </div>
               </div>
-
-              {/* Total Price */}
-              <div className="flex justify-between items-center py-3 bg-blue-50 rounded-lg px-4 border border-blue-200">
-                <span className="font-semibold text-blue-900">Total Price</span>
-                <span className="font-bold text-xl text-blue-900">
+              
+              <div className="flex justify-between items-center py-3 border-t bg-muted/30 rounded-lg px-4">
+                <span className="font-semibold">Total Price</span>
+                <span className="text-xl font-bold text-green-600">
                   ${getTotalPrice().toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
               </div>
               
-              <div className="flex justify-between items-center py-2">
-                <span className="flex items-center gap-2">
-                  <Wallet className="h-4 w-4" />
-                  Account Balance
-                </span>
-                <span className="font-semibold text-green-600">
-                  ${userData.accountBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </span>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Wallet className="h-4 w-4" />
+                <span>Available Balance: ${userData.accountBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
-              
-              {userData.accountBalance < getTotalPrice() && (
-                <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 p-3 rounded-lg border border-red-200">
-                  <AlertCircle className="h-4 w-4" />
-                  Insufficient balance for this purchase. You need ${(getTotalPrice() - userData.accountBalance).toFixed(2)} more.
-                </div>
-              )}
             </div>
           )}
           
-          <DialogFooter className="flex gap-2">
+          <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setShowBuyModal(false)}>
               Cancel
             </Button>
             <Button 
               onClick={handleProceedToBuy}
-              disabled={selectedAsset && userData.accountBalance < getTotalPrice()}
+              disabled={isProcessing || !selectedAsset || userData.accountBalance < getTotalPrice()}
+              className="flex items-center gap-2"
             >
-              Buy Now
+              {isProcessing ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <ShoppingCart className="h-4 w-4" />
+                  Confirm Purchase
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -562,7 +619,7 @@ export default function BrowseAssets() {
               Security Verification
             </DialogTitle>
             <DialogDescription>
-              Please enter your 4-digit security PIN to complete the purchase of {quantity} {quantity > 1 ? 'units' : 'unit'} for ${getTotalPrice().toFixed(2)}.
+              Please enter your security PIN to complete the purchase.
             </DialogDescription>
           </DialogHeader>
           
@@ -570,39 +627,62 @@ export default function BrowseAssets() {
             <div>
               <Input
                 type="password"
-                placeholder="Enter 4-digit PIN"
+                placeholder="Enter your security PIN"
                 value={pin}
                 onChange={(e) => {
                   setPin(e.target.value);
                   setPinError('');
                 }}
+                className={pinError ? 'border-red-500' : ''}
                 maxLength={4}
-                className="text-center text-lg tracking-widest"
               />
               {pinError && (
-                <p className="text-red-600 text-sm mt-2 flex items-center gap-1">
+                <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
                   <AlertCircle className="h-4 w-4" />
                   {pinError}
                 </p>
               )}
             </div>
+            
+            {selectedAsset && (
+              <div className="bg-muted/50 rounded-lg p-3 text-sm">
+                <div className="flex justify-between">
+                  <span>Asset:</span>
+                  <span className="font-semibold">{selectedAsset.name}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Quantity:</span>
+                  <span className="font-semibold">{quantity}</span>
+                </div>
+                <div className="flex justify-between border-t pt-2 mt-2">
+                  <span>Total Amount:</span>
+                  <span className="font-bold text-green-600">
+                    ${getTotalPrice().toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
           
-          <DialogFooter className="flex gap-2">
+          <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setShowPinModal(false)}>
               Cancel
             </Button>
             <Button 
               onClick={handlePinSubmit}
               disabled={isProcessing || !pin}
+              className="flex items-center gap-2"
             >
               {isProcessing ? (
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Processing...
-                </div>
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  Verifying...
+                </>
               ) : (
-                'Confirm Purchase'
+                <>
+                  <Check className="h-4 w-4" />
+                  Confirm Purchase
+                </>
               )}
             </Button>
           </DialogFooter>
@@ -619,22 +699,19 @@ export default function BrowseAssets() {
               ) : (
                 <AlertCircle className="h-5 w-5 text-red-600" />
               )}
-              Purchase {purchaseResult.success ? 'Successful' : 'Failed'}
+              {purchaseResult.success ? 'Purchase Successful' : 'Purchase Failed'}
             </DialogTitle>
           </DialogHeader>
           
-          <div className="space-y-4">
-            <div className={`p-4 rounded-lg ${purchaseResult.success ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
-              <p className={purchaseResult.success ? 'text-green-800' : 'text-red-800'}>
-                {purchaseResult.message}
-              </p>
-            </div>
+          <div className="py-4">
+            <p className={`text-center ${purchaseResult.success ? 'text-green-600' : 'text-red-600'}`}>
+              {purchaseResult.message}
+            </p>
             
             {purchaseResult.success && (
-              <div className="bg-muted/50 rounded-lg p-4">
-                <p className="text-sm text-gray-600">Updated Account Balance:</p>
-                <p className="text-lg font-semibold text-green-600">
-                  ${userData.accountBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              <div className="mt-4 bg-green-50 border border-green-200 rounded-lg p-3">
+                <p className="text-sm text-green-800">
+                  Your updated account balance: <span className="font-semibold">${userData.accountBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </p>
               </div>
             )}
@@ -642,7 +719,7 @@ export default function BrowseAssets() {
           
           <DialogFooter>
             <Button onClick={closeAllModals} className="w-full">
-              {purchaseResult.success ? 'Continue Shopping' : 'Try Again'}
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>
