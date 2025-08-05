@@ -72,6 +72,59 @@ export default function Holdings() {
   const [assetDetails, setAssetDetails] = useState(null);
   const [assetDetailsLoading, setAssetDetailsLoading] = useState(false);
   const [viewMode, setViewMode] = useState('cards');
+  const [assetPrices, setAssetPrices] = useState({});
+
+    // Update the useEffect hook for fetching prices
+  useEffect(() => {
+    const fetchHoldings = async () => {
+      setLoading(true);
+      try {
+        const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/holdings`);
+        const data = response.data;
+        
+        // Calculate total value for each holding
+        const holdingsWithValue = data.map(holding => ({
+          ...holding,
+          total_value: (parseFloat(holding.quantity) * parseFloat(holding.purchase_price)).toFixed(2),
+          purchase_date_formatted: format(new Date(holding.purchase_date), 'MMM dd, yyyy')
+        }));
+        
+        setHoldings(holdingsWithValue);
+        setFilteredHoldings(holdingsWithValue);
+        
+        // Fetch all asset prices for the table view
+        if (data.length > 0) {
+          // Get unique asset IDs - make sure to use the same ID field you use in openAssetDetails
+          const assetIds = [...new Set(data.map(holding => holding.id))]; // Changed from asset_id to id
+          
+          try {
+            const pricesPromises = assetIds.map(assetId => 
+              axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/assets/get/${assetId}`)
+            );
+            
+            const priceResponses = await Promise.all(pricesPromises);
+            const pricesMap = {};
+            
+            priceResponses.forEach(response => {
+              if (response.data && response.data.id) {
+                pricesMap[response.data.id] = parseFloat(response.data.price);
+              }
+            });
+            
+            setAssetPrices(pricesMap);
+          } catch (priceError) {
+            console.error('Error fetching asset prices:', priceError);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching holdings:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchHoldings();
+  }, []);
   
   // Fetch holdings data
   useEffect(() => {
@@ -298,6 +351,81 @@ export default function Holdings() {
               <span>Table View</span>
             </TabsTrigger>
           </TabsList>
+
+          
+        {/* Search, filters and sorting */}
+        <motion.div 
+          className="my-4 space-y-4"
+          initial="hidden"
+          animate="visible"
+          variants={fadeVariants}
+        >
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search holdings..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+              {searchQuery && (
+                <button 
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-2.5"
+                >
+                  <X className="h-4 w-4 text-muted-foreground hover:text-foreground transition-colors" />
+                </button>
+              )}
+            </div>
+            
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="w-full md:w-[180px] flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <ArrowUpDown className="h-4 w-4" />
+                    <span>Sort by</span>
+                  </div>
+                  <ChevronDown className="h-4 w-4 ml-2 opacity-50" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-[200px]">
+                <DropdownMenuLabel>Sort options</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => handleSort('name')} className="flex justify-between">
+                  Asset Name
+                  {sortConfig.key === 'name' && (
+                    sortConfig.direction === 'ascending' ? <SortAsc className="h-4 w-4" /> : <SortDesc className="h-4 w-4" />
+                  )}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleSort('purchase_price')} className="flex justify-between">
+                  Purchase Price
+                  {sortConfig.key === 'purchase_price' && (
+                    sortConfig.direction === 'ascending' ? <SortAsc className="h-4 w-4" /> : <SortDesc className="h-4 w-4" />
+                  )}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleSort('quantity')} className="flex justify-between">
+                  Quantity
+                  {sortConfig.key === 'quantity' && (
+                    sortConfig.direction === 'ascending' ? <SortAsc className="h-4 w-4" /> : <SortDesc className="h-4 w-4" />
+                  )}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleSort('total_value')} className="flex justify-between">
+                  Total Value
+                  {sortConfig.key === 'total_value' && (
+                    sortConfig.direction === 'ascending' ? <SortAsc className="h-4 w-4" /> : <SortDesc className="h-4 w-4" />
+                  )}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleSort('purchase_date')} className="flex justify-between">
+                  Purchase Date
+                  {sortConfig.key === 'purchase_date' && (
+                    sortConfig.direction === 'ascending' ? <SortAsc className="h-4 w-4" /> : <SortDesc className="h-4 w-4" />
+                  )}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </motion.div>
           
           {/* TabsContent moved inside Tabs component */}
           <TabsContent value="cards" className="mt-4 p-0">
@@ -446,6 +574,20 @@ export default function Holdings() {
                       <th className="h-12 px-4 text-left align-middle font-medium">
                         <div 
                           className="flex items-center gap-1 cursor-pointer"
+                        >
+                          Current Price
+                        </div>
+                      </th>
+                      <th className="h-12 px-4 text-left align-middle font-medium">
+                        <div 
+                          className="flex items-center gap-1 cursor-pointer"
+                        >
+                          Profit/Loss
+                        </div>
+                      </th>
+                      <th className="h-12 px-4 text-left align-middle font-medium">
+                        <div 
+                          className="flex items-center gap-1 cursor-pointer"
                           onClick={() => handleSort('purchase_date')}
                         >
                           Purchase Date
@@ -482,6 +624,12 @@ export default function Holdings() {
                             <Skeleton className="h-5 w-20" />
                           </td>
                           <td className="p-4 align-middle">
+                            <Skeleton className="h-5 w-20" />
+                          </td>
+                          <td className="p-4 align-middle">
+                            <Skeleton className="h-5 w-28" />
+                          </td>
+                          <td className="p-4 align-middle">
                             <Skeleton className="h-5 w-24" />
                           </td>
                           <td className="p-4 align-middle">
@@ -494,37 +642,60 @@ export default function Holdings() {
                       ))
                     ) : filteredHoldings.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="p-4 text-center text-gray-500">
+                        <td colSpan={8} className="p-4 text-center text-gray-500">
                           No holdings found. {searchQuery && 'Try adjusting your search query.'}
                         </td>
                       </tr>
                     ) : (
-                      filteredHoldings.map((holding) => (
-                        <motion.tr 
-                          key={holding.id}
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          className="border-b transition-colors hover:bg-muted/50"
-                        >
-                          <td className="p-4 align-middle font-medium">{holding.name}</td>
-                          <td className="p-4 align-middle">{parseFloat(holding.quantity).toLocaleString()}</td>
-                          <td className="p-4 align-middle">${parseFloat(holding.purchase_price).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                          <td className="p-4 align-middle">{holding.purchase_date_formatted}</td>
-                          <td className="p-4 align-middle font-medium text-emerald-600">
-                            ${parseFloat(holding.total_value).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
-                          </td>
-                          <td className="p-4 align-middle text-right">
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              onClick={() => openAssetDetails(holding)}
-                            >
-                              <Info className="mr-2 h-4 w-4" />
-                              Details
-                            </Button>
-                          </td>
-                        </motion.tr>
-                      ))
+                      filteredHoldings.map((holding) => {
+                        // Use purchase price as fallback instead of 0 to avoid showing -100% loss
+                        const currentPrice = assetPrices[holding.id] || parseFloat(holding.purchase_price);
+                        const purchasePrice = parseFloat(holding.purchase_price);
+                        const profitLoss = (currentPrice - purchasePrice) * parseFloat(holding.quantity);
+                        const profitLossPercent = ((currentPrice - purchasePrice) / purchasePrice * 100).toFixed(2);
+                        const isPositive = profitLoss >= 0;
+                        
+                        return (
+                          <tr key={holding.id} className="border-b transition-colors hover:bg-muted/50">
+                            <td className="p-4 align-middle">
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium">{holding.name}</span>
+                              </div>
+                            </td>
+                            <td className="p-4 align-middle">
+                              <span>{parseFloat(holding.quantity).toLocaleString()}</span>
+                            </td>
+                            <td className="p-4 align-middle">
+                              <span>${parseFloat(purchasePrice).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                            </td>
+                            <td className="p-4 align-middle">
+                              <span>${parseFloat(currentPrice).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                            </td>
+                            <td className="p-4 align-middle">
+                              <span className={`font-medium flex items-center gap-1 ${isPositive ? 'text-emerald-600' : 'text-red-600'}`}>
+                                {isPositive ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
+                                ${Math.abs(profitLoss).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} 
+                                ({isPositive ? '+' : '-'}{Math.abs(profitLossPercent)}%)
+                              </span>
+                            </td>
+                            <td className="p-4 align-middle">
+                              <span>{holding.purchase_date_formatted}</span>
+                            </td>
+                            <td className="p-4 align-middle">
+                              <span>${parseFloat(holding.total_value).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                            </td>
+                            <td className="p-4 align-middle text-right">
+                              <Button 
+                                variant="outline"
+                                size="sm"
+                                onClick={() => openAssetDetails(holding)}
+                              >
+                                <Info className="h-4 w-4" />
+                              </Button>
+                            </td>
+                          </tr>
+                        );
+                      })
                     )}
                   </tbody>
                 </table>
@@ -532,80 +703,6 @@ export default function Holdings() {
             </div>
           </TabsContent>
         </Tabs>
-      </motion.div>
-      
-      {/* Search, filters and sorting */}
-      <motion.div 
-        className="mb-8 space-y-4"
-        initial="hidden"
-        animate="visible"
-        variants={fadeVariants}
-      >
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search holdings..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
-            {searchQuery && (
-              <button 
-                onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-2.5"
-              >
-                <X className="h-4 w-4 text-muted-foreground hover:text-foreground transition-colors" />
-              </button>
-            )}
-          </div>
-          
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="w-full md:w-[180px] flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <ArrowUpDown className="h-4 w-4" />
-                  <span>Sort by</span>
-                </div>
-                <ChevronDown className="h-4 w-4 ml-2 opacity-50" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-[200px]">
-              <DropdownMenuLabel>Sort options</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => handleSort('name')} className="flex justify-between">
-                Asset Name
-                {sortConfig.key === 'name' && (
-                  sortConfig.direction === 'ascending' ? <SortAsc className="h-4 w-4" /> : <SortDesc className="h-4 w-4" />
-                )}
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleSort('purchase_price')} className="flex justify-between">
-                Purchase Price
-                {sortConfig.key === 'purchase_price' && (
-                  sortConfig.direction === 'ascending' ? <SortAsc className="h-4 w-4" /> : <SortDesc className="h-4 w-4" />
-                )}
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleSort('quantity')} className="flex justify-between">
-                Quantity
-                {sortConfig.key === 'quantity' && (
-                  sortConfig.direction === 'ascending' ? <SortAsc className="h-4 w-4" /> : <SortDesc className="h-4 w-4" />
-                )}
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleSort('total_value')} className="flex justify-between">
-                Total Value
-                {sortConfig.key === 'total_value' && (
-                  sortConfig.direction === 'ascending' ? <SortAsc className="h-4 w-4" /> : <SortDesc className="h-4 w-4" />
-                )}
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleSort('purchase_date')} className="flex justify-between">
-                Purchase Date
-                {sortConfig.key === 'purchase_date' && (
-                  sortConfig.direction === 'ascending' ? <SortAsc className="h-4 w-4" /> : <SortDesc className="h-4 w-4" />
-                )}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
       </motion.div>
       
       {/* Results summary */}
