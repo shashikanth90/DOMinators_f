@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Search, Filter, SortAsc, SortDesc, ChevronDown, 
-  Info, ShoppingCart, ArrowUpDown, X, Check
+  Info, ShoppingCart, ArrowUpDown, X, Check, Lock,
+  DollarSign, Wallet, AlertCircle, CheckCircle2, Plus, Minus
 } from 'lucide-react';
 import {
   Card,
@@ -25,6 +25,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -38,14 +46,47 @@ export default function BrowseAssets() {
   const [activeFilter, setActiveFilter] = useState('All');
   const [sortConfig, setSortConfig] = useState({ key: 'name', direction: 'ascending' });
   
+  // Buy asset modal states
+  const [selectedAsset, setSelectedAsset] = useState(null);
+  const [quantity, setQuantity] = useState(1);
+  const [showBuyModal, setShowBuyModal] = useState(false);
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [showResultModal, setShowResultModal] = useState(false);
+  const [pin, setPin] = useState('');
+  const [pinError, setPinError] = useState('');
+  const [purchaseResult, setPurchaseResult] = useState({ success: false, message: '' });
+  const [isProcessing, setIsProcessing] = useState(false);
+  
+  // Mock user data - in real app this would come from your backend/auth
+  const [userData, setUserData] = useState({
+    accountBalance: 50000.00,
+    securityPin: '1234'
+  });
+  
   const assetTypes = ['All', 'Stock', 'Mutual Fund', 'Bond', 'Cash', 'Other'];
   
   useEffect(() => {
     const fetchAssets = async () => {
       setLoading(true);
       try {
-        const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/assets/get-all`);        setAssets(response.data);
-        setFilteredAssets(response.data);
+        // In your real app, replace this with your actual API call:
+        // const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/assets/get-all`);
+        // const data = await response.json();
+        // setAssets(data);
+        // setFilteredAssets(data);
+        
+        // Mock data for demonstration
+        const mockAssets = [
+          { id: 1, name: 'Apple Inc. (AAPL)', type: 'Stock', price: 175.50, created_at: '2024-01-15' },
+          { id: 2, name: 'Vanguard Total Stock Market', type: 'Mutual Fund', price: 112.25, created_at: '2024-01-20' },
+          { id: 3, name: 'US Treasury Bond 10Y', type: 'Bond', price: 1000.00, created_at: '2024-01-25' },
+          { id: 4, name: 'Tesla Inc. (TSLA)', type: 'Stock', price: 248.75, created_at: '2024-02-01' },
+          { id: 5, name: 'High Yield Savings', type: 'Cash', price: 10000.00, created_at: '2024-02-05' },
+          { id: 6, name: 'Microsoft Corp. (MSFT)', type: 'Stock', price: 425.30, created_at: '2024-02-10' },
+        ];
+        
+        setAssets(mockAssets);
+        setFilteredAssets(mockAssets);
       } catch (error) {
         console.error('Error fetching assets:', error);
       } finally {
@@ -59,19 +100,16 @@ export default function BrowseAssets() {
   useEffect(() => {
     let result = [...assets];
     
-    // Apply search filter
     if (searchQuery) {
       result = result.filter(asset => 
         asset.name.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
     
-    // Apply type filter
     if (activeFilter !== 'All') {
       result = result.filter(asset => asset.type === activeFilter);
     }
     
-    // Apply sorting
     result.sort((a, b) => {
       if (a[sortConfig.key] < b[sortConfig.key]) {
         return sortConfig.direction === 'ascending' ? -1 : 1;
@@ -92,6 +130,83 @@ export default function BrowseAssets() {
         ? 'descending' 
         : 'ascending'
     }));
+  };
+
+  const handleBuyAsset = (asset) => {
+    setSelectedAsset(asset);
+    setQuantity(1);
+    setShowBuyModal(true);
+  };
+
+  const handleQuantityChange = (change) => {
+    setQuantity(prev => {
+      const newQuantity = prev + change;
+      return newQuantity < 1 ? 1 : newQuantity;
+    });
+  };
+
+  const getTotalPrice = () => {
+    if (!selectedAsset) return 0;
+    return parseFloat(selectedAsset.price) * quantity;
+  };
+
+  const handleProceedToBuy = () => {
+    setShowBuyModal(false);
+    setShowPinModal(true);
+    setPin('');
+    setPinError('');
+  };
+
+  const handlePinSubmit = async () => {
+    if (!pin) {
+      setPinError('Please enter your security PIN');
+      return;
+    }
+
+    if (pin !== userData.securityPin) {
+      setPinError('Invalid PIN. Please try again.');
+      return;
+    }
+
+    setIsProcessing(true);
+    
+    // Simulate API call delay
+    setTimeout(() => {
+      const totalPrice = getTotalPrice();
+      
+      if (userData.accountBalance >= totalPrice) {
+        // Successful purchase
+        setUserData(prev => ({
+          ...prev,
+          accountBalance: prev.accountBalance - totalPrice
+        }));
+        
+        setPurchaseResult({
+          success: true,
+          message: `Successfully purchased ${quantity} ${quantity > 1 ? 'units' : 'unit'} of ${selectedAsset.name} for ${totalPrice.toFixed(2)}`
+        });
+      } else {
+        // Insufficient funds
+        setPurchaseResult({
+          success: false,
+          message: 'Purchase failed: Insufficient account balance'
+        });
+      }
+      
+      setIsProcessing(false);
+      setShowPinModal(false);
+      setShowResultModal(true);
+    }, 1500);
+  };
+
+  const closeAllModals = () => {
+    setShowBuyModal(false);
+    setShowPinModal(false);
+    setShowResultModal(false);
+    setSelectedAsset(null);
+    setQuantity(1);
+    setPin('');
+    setPinError('');
   };
   
   const containerVariants = {
@@ -131,8 +246,18 @@ export default function BrowseAssets() {
         variants={fadeVariants}
         className="mb-8"
       >
-        <h1 className="text-3xl font-bold mb-2">Browse Assets</h1>
-        <p className="text-gray-500">Discover and invest in a wide range of financial instruments</p>
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">Browse Assets</h1>
+            <p className="text-gray-500">Discover and invest in a wide range of financial instruments</p>
+          </div>
+          <div className="text-right">
+            <p className="text-sm text-gray-500">Account Balance</p>
+            <p className="text-2xl font-bold text-green-600">
+              ${userData.accountBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </p>
+          </div>
+        </div>
       </motion.div>
       
       {/* Search, filters and sorting */}
@@ -316,7 +441,10 @@ export default function BrowseAssets() {
                               <Info className="h-4 w-4" />
                               View Details
                             </DropdownMenuItem>
-                            <DropdownMenuItem className="flex gap-2 items-center">
+                            <DropdownMenuItem 
+                              className="flex gap-2 items-center"
+                              onClick={() => handleBuyAsset(asset)}
+                            >
                               <ShoppingCart className="h-4 w-4" />
                               Buy Asset
                             </DropdownMenuItem>
@@ -343,6 +471,197 @@ export default function BrowseAssets() {
           </motion.div>
         </AnimatePresence>
       )}
+
+      {/* Buy Asset Modal */}
+      <Dialog open={showBuyModal} onOpenChange={setShowBuyModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ShoppingCart className="h-5 w-5" />
+              Purchase Asset
+            </DialogTitle>
+            <DialogDescription>
+              Review the details before proceeding with your purchase.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedAsset && (
+            <div className="space-y-4">
+              <div className="bg-muted/50 rounded-lg p-4">
+                <h4 className="font-semibold">{selectedAsset.name}</h4>
+                <Badge variant="outline" className="mt-1">{selectedAsset.type}</Badge>
+              </div>
+              
+              <div className="flex justify-between items-center py-2 border-b">
+                <span className="flex items-center gap-2">
+                  <DollarSign className="h-4 w-4" />
+                  Unit Price
+                </span>
+                <span className="font-semibold">
+                  ${parseFloat(selectedAsset.price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
+              </div>
+
+              {/* Quantity Selector */}
+              <div className="flex justify-between items-center py-2 border-b">
+                <span className="font-medium">Quantity</span>
+                <div className="flex items-center gap-3">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => handleQuantityChange(-1)}
+                    disabled={quantity <= 1}
+                  >
+                    <Minus className="h-4 w-4" />
+                  </Button>
+                  <span className="w-12 text-center font-semibold">{quantity}</span>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => handleQuantityChange(1)}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+
+              {/* Total Price */}
+              <div className="flex justify-between items-center py-3 bg-blue-50 rounded-lg px-4 border border-blue-200">
+                <span className="font-semibold text-blue-900">Total Price</span>
+                <span className="font-bold text-xl text-blue-900">
+                  ${getTotalPrice().toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
+              </div>
+              
+              <div className="flex justify-between items-center py-2">
+                <span className="flex items-center gap-2">
+                  <Wallet className="h-4 w-4" />
+                  Account Balance
+                </span>
+                <span className="font-semibold text-green-600">
+                  ${userData.accountBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
+              </div>
+              
+              {userData.accountBalance < getTotalPrice() && (
+                <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 p-3 rounded-lg border border-red-200">
+                  <AlertCircle className="h-4 w-4" />
+                  Insufficient balance for this purchase. You need ${(getTotalPrice() - userData.accountBalance).toFixed(2)} more.
+                </div>
+              )}
+            </div>
+          )}
+          
+          <DialogFooter className="flex gap-2">
+            <Button variant="outline" onClick={() => setShowBuyModal(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleProceedToBuy}
+              disabled={selectedAsset && userData.accountBalance < getTotalPrice()}
+            >
+              Buy Now
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Security PIN Modal */}
+      <Dialog open={showPinModal} onOpenChange={setShowPinModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Lock className="h-5 w-5" />
+              Security Verification
+            </DialogTitle>
+            <DialogDescription>
+              Please enter your 4-digit security PIN to complete the purchase of {quantity} {quantity > 1 ? 'units' : 'unit'} for ${getTotalPrice().toFixed(2)}.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div>
+              <Input
+                type="password"
+                placeholder="Enter 4-digit PIN"
+                value={pin}
+                onChange={(e) => {
+                  setPin(e.target.value);
+                  setPinError('');
+                }}
+                maxLength={4}
+                className="text-center text-lg tracking-widest"
+              />
+              {pinError && (
+                <p className="text-red-600 text-sm mt-2 flex items-center gap-1">
+                  <AlertCircle className="h-4 w-4" />
+                  {pinError}
+                </p>
+              )}
+            </div>
+          </div>
+          
+          <DialogFooter className="flex gap-2">
+            <Button variant="outline" onClick={() => setShowPinModal(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handlePinSubmit}
+              disabled={isProcessing || !pin}
+            >
+              {isProcessing ? (
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  Processing...
+                </div>
+              ) : (
+                'Confirm Purchase'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Purchase Result Modal */}
+      <Dialog open={showResultModal} onOpenChange={setShowResultModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {purchaseResult.success ? (
+                <CheckCircle2 className="h-5 w-5 text-green-600" />
+              ) : (
+                <AlertCircle className="h-5 w-5 text-red-600" />
+              )}
+              Purchase {purchaseResult.success ? 'Successful' : 'Failed'}
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className={`p-4 rounded-lg ${purchaseResult.success ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
+              <p className={purchaseResult.success ? 'text-green-800' : 'text-red-800'}>
+                {purchaseResult.message}
+              </p>
+            </div>
+            
+            {purchaseResult.success && (
+              <div className="bg-muted/50 rounded-lg p-4">
+                <p className="text-sm text-gray-600">Updated Account Balance:</p>
+                <p className="text-lg font-semibold text-green-600">
+                  ${userData.accountBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+              </div>
+            )}
+          </div>
+          
+          <DialogFooter>
+            <Button onClick={closeAllModals} className="w-full">
+              {purchaseResult.success ? 'Continue Shopping' : 'Try Again'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
