@@ -4,12 +4,15 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Search, Filter, SortAsc, SortDesc, ChevronDown, 
   Info, ShoppingCart, ArrowUpDown, X, Check, Lock,
-  DollarSign, Wallet, AlertCircle, CheckCircle2, Plus, Minus
+  DollarSign, Wallet, AlertCircle, CheckCircle2, Plus, Minus,
+  Package, BarChart3, Calendar
 } from 'lucide-react';
 import {
   Card,
   CardContent,
   CardFooter,
+  CardHeader,
+  CardTitle,
 } from "@/components/ui/card";
 import {
   DropdownMenu,
@@ -34,6 +37,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -46,10 +55,11 @@ export default function BrowseAssets() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('All');
   const [sortConfig, setSortConfig] = useState({ key: 'name', direction: 'ascending' });
+  const [viewMode, setViewMode] = useState('cards');
   
   // Buy asset modal states
   const [selectedAsset, setSelectedAsset] = useState(null);
-  const [quantity, setQuantity] = useState(1);
+  const [quantity, setQuantity] = useState(0.01);
   const [showBuyModal, setShowBuyModal] = useState(false);
   const [showPinModal, setShowPinModal] = useState(false);
   const [showResultModal, setShowResultModal] = useState(false);
@@ -147,8 +157,8 @@ export default function BrowseAssets() {
 
   const handleQuantityChange = (change) => {
     setQuantity(prev => {
-      const newQuantity = prev + change;
-      return newQuantity < 1 ? 1 : newQuantity;
+      const newQuantity = Math.round((prev + change) * 100) / 100;
+      return newQuantity < 0.01 ? 0.01 : newQuantity;
     });
   };
 
@@ -157,7 +167,24 @@ export default function BrowseAssets() {
     return parseFloat(selectedAsset.price) * quantity;
   };
 
-  const handleProceedToBuy = async () => {
+  const handleProceedToBuy = () => {
+    setShowBuyModal(false);
+    setShowPinModal(true);
+    setPin('');
+    setPinError('');
+  };
+
+  const handlePinSubmit = async () => {
+    if (!pin) {
+      setPinError('Please enter your security PIN');
+      return;
+    }
+
+    if (pin !== userData.securityPin) {
+      setPinError('Invalid PIN. Please try again.');
+      return;
+    }
+
     if (!selectedAsset) return;
     
     setIsProcessing(true);
@@ -178,7 +205,7 @@ export default function BrowseAssets() {
         message: `Successfully purchased ${quantity} ${quantity > 1 ? 'units' : 'unit'} of ${selectedAsset.name}`
       });
       
-      setShowBuyModal(false);
+      setShowPinModal(false);
       setShowResultModal(true);
     } catch (error) {
       console.error('Error making purchase:', error);
@@ -195,53 +222,11 @@ export default function BrowseAssets() {
         message: errorMessage
       });
       
-      setShowBuyModal(false);
+      setShowPinModal(false);
       setShowResultModal(true);
     } finally {
       setIsProcessing(false);
     }
-  };
-
-  const handlePinSubmit = async () => {
-    if (!pin) {
-      setPinError('Please enter your security PIN');
-      return;
-    }
-
-    if (pin !== userData.securityPin) {
-      setPinError('Invalid PIN. Please try again.');
-      return;
-    }
-
-    setIsProcessing(true);
-    
-    // Simulate API call delay
-    setTimeout(() => {
-      const totalPrice = getTotalPrice();
-      
-      if (userData.accountBalance >= totalPrice) {
-        // Successful purchase
-        setUserData(prev => ({
-          ...prev,
-          accountBalance: prev.accountBalance - totalPrice
-        }));
-        
-        setPurchaseResult({
-          success: true,
-          message: `Successfully purchased ${quantity} ${quantity > 1 ? 'units' : 'unit'} of ${selectedAsset.name} for ${totalPrice.toFixed(2)}`
-        });
-      } else {
-        // Insufficient funds
-        setPurchaseResult({
-          success: false,
-          message: 'Purchase failed: Insufficient account balance'
-        });
-      }
-      
-      setIsProcessing(false);
-      setShowPinModal(false);
-      setShowResultModal(true);
-    }, 1500);
   };
 
   const closeAllModals = () => {
@@ -408,114 +393,253 @@ export default function BrowseAssets() {
         </div>
       </motion.div>
       
-      {/* Results summary */}
+      {/* Tabs for switching view modes */}
       <motion.div 
-        variants={fadeVariants}
         initial="hidden"
-        animate="visible"
-        className="mb-4 flex justify-between items-center"
+        animate="visible" 
+        variants={fadeVariants}
+        className="mb-6"
       >
-        <p className="text-sm text-gray-500">
-          {loading ? 'Loading assets...' : `Showing ${filteredAssets.length} of ${assets.length} assets`}
-        </p>
-      </motion.div>
-      
-      {/* Assets grid */}
-      {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[...Array(6)].map((_, i) => (
-            <div key={i} className="border rounded-lg p-4">
-              <Skeleton className="h-6 w-3/4 mb-4" />
-              <Skeleton className="h-4 w-1/4 mb-2" />
-              <Skeleton className="h-8 w-1/3 mb-4" />
-              <div className="flex justify-between">
-                <Skeleton className="h-9 w-20" />
-                <Skeleton className="h-9 w-9 rounded-full" />
+        <Tabs value={viewMode} onValueChange={setViewMode} className="w-full">
+          <TabsList className="grid w-full max-w-[400px] grid-cols-2">
+            <TabsTrigger value="cards" className="flex items-center gap-2">
+              <Package className="h-4 w-4" />
+              <span>Card View</span>
+            </TabsTrigger>
+            <TabsTrigger value="table" className="flex items-center gap-2">
+              <BarChart3 className="h-4 w-4" />
+              <span>Table View</span>
+            </TabsTrigger>
+          </TabsList>
+          
+          {/* TabsContent moved inside Tabs component */}
+          <TabsContent value="cards" className="mt-4 p-0">
+            {/* Assets grid */}
+            {loading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {[...Array(6)].map((_, i) => (
+                  <div key={i} className="border rounded-lg p-4">
+                    <Skeleton className="h-6 w-3/4 mb-4" />
+                    <Skeleton className="h-4 w-1/4 mb-2" />
+                    <Skeleton className="h-8 w-1/3 mb-4" />
+                    <div className="flex justify-between">
+                      <Skeleton className="h-9 w-20" />
+                      <Skeleton className="h-9 w-9 rounded-full" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <AnimatePresence>
+                <motion.div 
+                  className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="visible"
+                >
+                  {filteredAssets.length === 0 ? (
+                    <motion.div 
+                      className="col-span-full text-center py-12"
+                      variants={fadeVariants}
+                    >
+                      <p className="text-lg text-gray-500">No assets found matching your criteria</p>
+                      <Button 
+                        variant="outline" 
+                        className="mt-4"
+                        onClick={() => {
+                          setSearchQuery('');
+                          setActiveFilter('All');
+                        }}
+                      >
+                        Clear filters
+                      </Button>
+                    </motion.div>
+                  ) : (
+                    filteredAssets.map((asset) => (
+                      <motion.div 
+                        key={asset.id}
+                        variants={cardVariants}
+                        whileHover="hover"
+                        layoutId={`asset-${asset.id}`}
+                      >
+                        <Card className="overflow-hidden h-full">
+                          <CardContent className="p-6">
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <h3 className="font-semibold text-lg line-clamp-2">{asset.name}</h3>
+                                <Badge className="mt-2" variant="outline">{asset.type}</Badge>
+                              </div>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                                    <ChevronDown className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem className="flex gap-2 items-center">
+                                    <Info className="h-4 w-4" />
+                                    View Details
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem 
+                                    className="flex gap-2 items-center"
+                                    onClick={() => handleBuyAsset(asset)}
+                                  >
+                                    <ShoppingCart className="h-4 w-4" />
+                                    Buy Asset
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+                            
+                            <div className="mt-6">
+                              <span className="text-sm text-gray-500">Current Price</span>
+                              <p className="text-2xl font-bold">${parseFloat(asset.price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                            </div>
+                          </CardContent>
+                          
+                          <CardFooter className="bg-muted/50 px-6 py-3">
+                            <div className="text-xs text-gray-500 w-full flex justify-between">
+                              <span>Added {new Date(asset.created_at).toLocaleDateString()}</span>
+                              <span>ID: {asset.id}</span>
+                            </div>
+                          </CardFooter>
+                        </Card>
+                      </motion.div>
+                    ))
+                  )}
+                </motion.div>
+              </AnimatePresence>
+            )}
+          </TabsContent>
+          
+          <TabsContent value="table" className="mt-4 p-0">
+            <div className="rounded-md border">
+              <div className="relative w-full overflow-auto">
+                <table className="w-full caption-bottom text-sm">
+                  <thead className="[&_tr]:border-b">
+                    <tr className="border-b transition-colors hover:bg-muted/50">
+                      <th className="h-12 px-4 text-left align-middle font-medium">
+                        <div 
+                          className="flex items-center gap-1 cursor-pointer"
+                          onClick={() => handleSort('name')}
+                        >
+                          Asset Name
+                          {sortConfig.key === 'name' && (
+                            sortConfig.direction === 'ascending' ? <SortAsc className="h-4 w-4" /> : <SortDesc className="h-4 w-4" />
+                          )}
+                        </div>
+                      </th>
+                      <th className="h-12 px-4 text-left align-middle font-medium">
+                        <div 
+                          className="flex items-center gap-1 cursor-pointer"
+                          onClick={() => handleSort('type')}
+                        >
+                          Type
+                          {sortConfig.key === 'type' && (
+                            sortConfig.direction === 'ascending' ? <SortAsc className="h-4 w-4" /> : <SortDesc className="h-4 w-4" />
+                          )}
+                        </div>
+                      </th>
+                      <th className="h-12 px-4 text-left align-middle font-medium">
+                        <div 
+                          className="flex items-center gap-1 cursor-pointer"
+                          onClick={() => handleSort('price')}
+                        >
+                          Price
+                          {sortConfig.key === 'price' && (
+                            sortConfig.direction === 'ascending' ? <SortAsc className="h-4 w-4" /> : <SortDesc className="h-4 w-4" />
+                          )}
+                        </div>
+                      </th>
+                      <th className="h-12 px-4 text-left align-middle font-medium">
+                        <div 
+                          className="flex items-center gap-1 cursor-pointer"
+                          onClick={() => handleSort('created_at')}
+                        >
+                          Date Added
+                          {sortConfig.key === 'created_at' && (
+                            sortConfig.direction === 'ascending' ? <SortAsc className="h-4 w-4" /> : <SortDesc className="h-4 w-4" />
+                          )}
+                        </div>
+                      </th>
+                      <th className="h-12 px-4 text-left align-middle font-medium">ID</th>
+                      <th className="h-12 px-4 text-right align-middle font-medium">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="[&_tr:last-child]:border-0">
+                    {loading ? (
+                      [...Array(5)].map((_, i) => (
+                        <tr key={i} className="border-b transition-colors hover:bg-muted/50">
+                          <td className="p-4 align-middle">
+                            <Skeleton className="h-5 w-32" />
+                          </td>
+                          <td className="p-4 align-middle">
+                            <Skeleton className="h-5 w-16" />
+                          </td>
+                          <td className="p-4 align-middle">
+                            <Skeleton className="h-5 w-20" />
+                          </td>
+                          <td className="p-4 align-middle">
+                            <Skeleton className="h-5 w-24" />
+                          </td>
+                          <td className="p-4 align-middle">
+                            <Skeleton className="h-5 w-16" />
+                          </td>
+                          <td className="p-4 align-middle text-right">
+                            <Skeleton className="h-9 w-24 ml-auto" />
+                          </td>
+                        </tr>
+                      ))
+                    ) : filteredAssets.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="p-4 text-center text-gray-500">
+                          No assets found. {searchQuery && 'Try adjusting your search query.'}
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredAssets.map((asset) => (
+                        <motion.tr 
+                          key={asset.id}
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          className="border-b transition-colors hover:bg-muted/50"
+                        >
+                          <td className="p-4 align-middle font-medium">{asset.name}</td>
+                          <td className="p-4 align-middle">
+                            <Badge variant="outline">{asset.type}</Badge>
+                          </td>
+                          <td className="p-4 align-middle font-medium">${parseFloat(asset.price).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                          <td className="p-4 align-middle">{new Date(asset.created_at).toLocaleDateString()}</td>
+                          <td className="p-4 align-middle text-gray-500">{asset.id}</td>
+                          <td className="p-4 align-middle text-right">
+                            <div className="flex gap-2 justify-end">
+                              {/* <Button 
+                                variant="ghost" 
+                                size="sm"
+                              >
+                                <Info className="mr-2 h-4 w-4" />
+                                Details
+                              </Button> */}
+                              <Button 
+                                variant="default" 
+                                size="sm"
+                                onClick={() => handleBuyAsset(asset)}
+                              >
+                                <ShoppingCart className="mr-2 h-4 w-4" />
+                                Buy
+                              </Button>
+                            </div>
+                          </td>
+                        </motion.tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
               </div>
             </div>
-          ))}
-        </div>
-      ) : (
-        <AnimatePresence>
-          <motion.div 
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-          >
-            {filteredAssets.length === 0 ? (
-              <motion.div 
-                className="col-span-full text-center py-12"
-                variants={fadeVariants}
-              >
-                <p className="text-lg text-gray-500">No assets found matching your criteria</p>
-                <Button 
-                  variant="outline" 
-                  className="mt-4"
-                  onClick={() => {
-                    setSearchQuery('');
-                    setActiveFilter('All');
-                  }}
-                >
-                  Clear filters
-                </Button>
-              </motion.div>
-            ) : (
-              filteredAssets.map((asset) => (
-                <motion.div 
-                  key={asset.id}
-                  variants={cardVariants}
-                  whileHover="hover"
-                  layoutId={`asset-${asset.id}`}
-                >
-                  <Card className="overflow-hidden h-full">
-                    <CardContent className="p-6">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h3 className="font-semibold text-lg line-clamp-2">{asset.name}</h3>
-                          <Badge className="mt-2" variant="outline">{asset.type}</Badge>
-                        </div>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <ChevronDown className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem className="flex gap-2 items-center">
-                              <Info className="h-4 w-4" />
-                              View Details
-                            </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              className="flex gap-2 items-center"
-                              onClick={() => handleBuyAsset(asset)}
-                            >
-                              <ShoppingCart className="h-4 w-4" />
-                              Buy Asset
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                      
-                      <div className="mt-6">
-                        <span className="text-sm text-gray-500">Current Price</span>
-                        <p className="text-2xl font-bold">${parseFloat(asset.price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-                      </div>
-                    </CardContent>
-                    
-                    <CardFooter className="bg-muted/50 px-6 py-3">
-                      <div className="text-xs text-gray-500 w-full flex justify-between">
-                        <span>Added {new Date(asset.created_at).toLocaleDateString()}</span>
-                        <span>ID: {asset.id}</span>
-                      </div>
-                    </CardFooter>
-                  </Card>
-                </motion.div>
-              ))
-            )}
-          </motion.div>
-        </AnimatePresence>
-      )}
+          </TabsContent>
+        </Tabs>
+      </motion.div>
 
       {/* Buy Asset Modal */}
       <Dialog open={showBuyModal} onOpenChange={setShowBuyModal}>
@@ -555,11 +679,21 @@ export default function BrowseAssets() {
                     size="icon"
                     className="h-8 w-8"
                     onClick={() => handleQuantityChange(-1)}
-                    disabled={quantity <= 1}
+                    disabled={quantity <= 0.01}
                   >
                     <Minus className="h-4 w-4" />
                   </Button>
-                  <span className="w-12 text-center font-semibold">{quantity}</span>
+                  <Input
+                    type="number"
+                    value={quantity}
+                    onChange={(e) => {
+                      const value = parseFloat(e.target.value) || 0;
+                      setQuantity(Math.max(0.01, Math.round(value * 100) / 100));
+                    }}
+                    className="w-20 text-center font-semibold"
+                    min="0.01"
+                    step="0.01"
+                  />
                   <Button
                     variant="outline"
                     size="icon"
