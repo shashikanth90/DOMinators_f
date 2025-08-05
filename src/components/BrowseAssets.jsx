@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+ import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Search, Filter, SortAsc, SortDesc, ChevronDown, 
@@ -69,24 +70,8 @@ export default function BrowseAssets() {
     const fetchAssets = async () => {
       setLoading(true);
       try {
-        // In your real app, replace this with your actual API call:
-        // const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/assets/get-all`);
-        // const data = await response.json();
-        // setAssets(data);
-        // setFilteredAssets(data);
-        
-        // Mock data for demonstration
-        const mockAssets = [
-          { id: 1, name: 'Apple Inc. (AAPL)', type: 'Stock', price: 175.50, created_at: '2024-01-15' },
-          { id: 2, name: 'Vanguard Total Stock Market', type: 'Mutual Fund', price: 112.25, created_at: '2024-01-20' },
-          { id: 3, name: 'US Treasury Bond 10Y', type: 'Bond', price: 1000.00, created_at: '2024-01-25' },
-          { id: 4, name: 'Tesla Inc. (TSLA)', type: 'Stock', price: 248.75, created_at: '2024-02-01' },
-          { id: 5, name: 'High Yield Savings', type: 'Cash', price: 10000.00, created_at: '2024-02-05' },
-          { id: 6, name: 'Microsoft Corp. (MSFT)', type: 'Stock', price: 425.30, created_at: '2024-02-10' },
-        ];
-        
-        setAssets(mockAssets);
-        setFilteredAssets(mockAssets);
+        const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/assets/get-all`);        setAssets(response.data);
+        setFilteredAssets(response.data);
       } catch (error) {
         console.error('Error fetching assets:', error);
       } finally {
