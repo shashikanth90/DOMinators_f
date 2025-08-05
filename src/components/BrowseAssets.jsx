@@ -1,15 +1,18 @@
- import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Search, Filter, SortAsc, SortDesc, ChevronDown, 
   Info, ShoppingCart, ArrowUpDown, X, Check, Lock,
-  DollarSign, Wallet, AlertCircle, CheckCircle2, Plus, Minus
+  DollarSign, Wallet, AlertCircle, CheckCircle2, Plus, Minus,
+  Package, BarChart3, Calendar
 } from 'lucide-react';
 import {
   Card,
   CardContent,
   CardFooter,
+  CardHeader,
+  CardTitle,
 } from "@/components/ui/card";
 import {
   DropdownMenu,
@@ -34,6 +37,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -46,10 +55,11 @@ export default function BrowseAssets() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('All');
   const [sortConfig, setSortConfig] = useState({ key: 'name', direction: 'ascending' });
+  const [viewMode, setViewMode] = useState('cards');
   
   // Buy asset modal states
   const [selectedAsset, setSelectedAsset] = useState(null);
-  const [quantity, setQuantity] = useState(1);
+  const [quantity, setQuantity] = useState(0.01);
   const [showBuyModal, setShowBuyModal] = useState(false);
   const [showPinModal, setShowPinModal] = useState(false);
   const [showResultModal, setShowResultModal] = useState(false);
@@ -58,28 +68,50 @@ export default function BrowseAssets() {
   const [purchaseResult, setPurchaseResult] = useState({ success: false, message: '' });
   const [isProcessing, setIsProcessing] = useState(false);
   
-  // Mock user data - in real app this would come from your backend/auth
+  // User data - account balance will be fetched from API
   const [userData, setUserData] = useState({
-    accountBalance: 50000.00,
+    accountBalance: 0,
     securityPin: '1234'
   });
   
   const assetTypes = ['All', 'Stock', 'Mutual Fund', 'Bond', 'Cash', 'Other'];
   
+  // Function to fetch account balance
+  const fetchAccountBalance = async () => {
+    try {
+      const settlementsResponse = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/settlements/viewBalance`);
+      console.log('Settlements Response:', settlementsResponse.data);
+      if (settlementsResponse.data && settlementsResponse.data.length > 0) {
+        setUserData(prev => ({
+          ...prev,
+          accountBalance: parseFloat(settlementsResponse.data[0].amount)
+        }));
+        console.log('Settlements Balance:', settlementsResponse.data[0].amount);
+      }
+    } catch (error) {
+      console.error('Error fetching account balance:', error);
+    }
+  };
+  
   useEffect(() => {
-    const fetchAssets = async () => {
+    const fetchData = async () => {
       setLoading(true);
       try {
-        const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/assets/get-all`);        setAssets(response.data);
-        setFilteredAssets(response.data);
+        // Fetch assets
+        const assetsResponse = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/assets/get-all`);
+        setAssets(assetsResponse.data);
+        setFilteredAssets(assetsResponse.data);
+        
+        // Fetch account balance
+        await fetchAccountBalance();
       } catch (error) {
-        console.error('Error fetching assets:', error);
+        console.error('Error fetching data:', error);
       } finally {
         setLoading(false);
       }
     };
     
-    fetchAssets();
+    fetchData();
   }, []);
   
   useEffect(() => {
@@ -125,8 +157,8 @@ export default function BrowseAssets() {
 
   const handleQuantityChange = (change) => {
     setQuantity(prev => {
-      const newQuantity = prev + change;
-      return newQuantity < 1 ? 1 : newQuantity;
+      const newQuantity = Math.round((prev + change) * 100) / 100;
+      return newQuantity < 0.01 ? 0.01 : newQuantity;
     });
   };
 
@@ -153,35 +185,48 @@ export default function BrowseAssets() {
       return;
     }
 
+    if (!selectedAsset) return;
+    
     setIsProcessing(true);
     
-    // Simulate API call delay
-    setTimeout(() => {
-      const totalPrice = getTotalPrice();
+    try {
+      const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/holdings/buy`, {
+        asset_id: selectedAsset.id,
+        quantity: quantity
+      });
       
-      if (userData.accountBalance >= totalPrice) {
-        // Successful purchase
-        setUserData(prev => ({
-          ...prev,
-          accountBalance: prev.accountBalance - totalPrice
-        }));
-        
-        setPurchaseResult({
-          success: true,
-          message: `Successfully purchased ${quantity} ${quantity > 1 ? 'units' : 'unit'} of ${selectedAsset.name} for ${totalPrice.toFixed(2)}`
-        });
-      } else {
-        // Insufficient funds
-        setPurchaseResult({
-          success: false,
-          message: 'Purchase failed: Insufficient account balance'
-        });
-      }
+      console.log('Purchase Response:', response.data);
       
-      setIsProcessing(false);
+      // If purchase is successful, refresh account balance
+      await fetchAccountBalance();
+      
+      setPurchaseResult({
+        success: true,
+        message: `Successfully purchased ${quantity} ${quantity > 1 ? 'units' : 'unit'} of ${selectedAsset.name}`
+      });
+      
       setShowPinModal(false);
       setShowResultModal(true);
-    }, 1500);
+    } catch (error) {
+      console.error('Error making purchase:', error);
+      
+      let errorMessage = 'Purchase failed. Please try again.';
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      }
+      
+      setPurchaseResult({
+        success: false,
+        message: errorMessage
+      });
+      
+      setShowPinModal(false);
+      setShowResultModal(true);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const closeAllModals = () => {
@@ -348,114 +393,253 @@ export default function BrowseAssets() {
         </div>
       </motion.div>
       
-      {/* Results summary */}
+      {/* Tabs for switching view modes */}
       <motion.div 
-        variants={fadeVariants}
         initial="hidden"
-        animate="visible"
-        className="mb-4 flex justify-between items-center"
+        animate="visible" 
+        variants={fadeVariants}
+        className="mb-6"
       >
-        <p className="text-sm text-gray-500">
-          {loading ? 'Loading assets...' : `Showing ${filteredAssets.length} of ${assets.length} assets`}
-        </p>
-      </motion.div>
-      
-      {/* Assets grid */}
-      {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[...Array(6)].map((_, i) => (
-            <div key={i} className="border rounded-lg p-4">
-              <Skeleton className="h-6 w-3/4 mb-4" />
-              <Skeleton className="h-4 w-1/4 mb-2" />
-              <Skeleton className="h-8 w-1/3 mb-4" />
-              <div className="flex justify-between">
-                <Skeleton className="h-9 w-20" />
-                <Skeleton className="h-9 w-9 rounded-full" />
+        <Tabs value={viewMode} onValueChange={setViewMode} className="w-full">
+          <TabsList className="grid w-full max-w-[400px] grid-cols-2">
+            <TabsTrigger value="cards" className="flex items-center gap-2">
+              <Package className="h-4 w-4" />
+              <span>Card View</span>
+            </TabsTrigger>
+            <TabsTrigger value="table" className="flex items-center gap-2">
+              <BarChart3 className="h-4 w-4" />
+              <span>Table View</span>
+            </TabsTrigger>
+          </TabsList>
+          
+          {/* TabsContent moved inside Tabs component */}
+          <TabsContent value="cards" className="mt-4 p-0">
+            {/* Assets grid */}
+            {loading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {[...Array(6)].map((_, i) => (
+                  <div key={i} className="border rounded-lg p-4">
+                    <Skeleton className="h-6 w-3/4 mb-4" />
+                    <Skeleton className="h-4 w-1/4 mb-2" />
+                    <Skeleton className="h-8 w-1/3 mb-4" />
+                    <div className="flex justify-between">
+                      <Skeleton className="h-9 w-20" />
+                      <Skeleton className="h-9 w-9 rounded-full" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <AnimatePresence>
+                <motion.div 
+                  className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="visible"
+                >
+                  {filteredAssets.length === 0 ? (
+                    <motion.div 
+                      className="col-span-full text-center py-12"
+                      variants={fadeVariants}
+                    >
+                      <p className="text-lg text-gray-500">No assets found matching your criteria</p>
+                      <Button 
+                        variant="outline" 
+                        className="mt-4"
+                        onClick={() => {
+                          setSearchQuery('');
+                          setActiveFilter('All');
+                        }}
+                      >
+                        Clear filters
+                      </Button>
+                    </motion.div>
+                  ) : (
+                    filteredAssets.map((asset) => (
+                      <motion.div 
+                        key={asset.id}
+                        variants={cardVariants}
+                        whileHover="hover"
+                        layoutId={`asset-${asset.id}`}
+                      >
+                        <Card className="overflow-hidden h-full">
+                          <CardContent className="p-6">
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <h3 className="font-semibold text-lg line-clamp-2">{asset.name}</h3>
+                                <Badge className="mt-2" variant="outline">{asset.type}</Badge>
+                              </div>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                                    <ChevronDown className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem className="flex gap-2 items-center">
+                                    <Info className="h-4 w-4" />
+                                    View Details
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem 
+                                    className="flex gap-2 items-center"
+                                    onClick={() => handleBuyAsset(asset)}
+                                  >
+                                    <ShoppingCart className="h-4 w-4" />
+                                    Buy Asset
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+                            
+                            <div className="mt-6">
+                              <span className="text-sm text-gray-500">Current Price</span>
+                              <p className="text-2xl font-bold">${parseFloat(asset.price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                            </div>
+                          </CardContent>
+                          
+                          <CardFooter className="bg-muted/50 px-6 py-3">
+                            <div className="text-xs text-gray-500 w-full flex justify-between">
+                              <span>Added {new Date(asset.created_at).toLocaleDateString()}</span>
+                              <span>ID: {asset.id}</span>
+                            </div>
+                          </CardFooter>
+                        </Card>
+                      </motion.div>
+                    ))
+                  )}
+                </motion.div>
+              </AnimatePresence>
+            )}
+          </TabsContent>
+          
+          <TabsContent value="table" className="mt-4 p-0">
+            <div className="rounded-md border">
+              <div className="relative w-full overflow-auto">
+                <table className="w-full caption-bottom text-sm">
+                  <thead className="[&_tr]:border-b">
+                    <tr className="border-b transition-colors hover:bg-muted/50">
+                      <th className="h-12 px-4 text-left align-middle font-medium">
+                        <div 
+                          className="flex items-center gap-1 cursor-pointer"
+                          onClick={() => handleSort('name')}
+                        >
+                          Asset Name
+                          {sortConfig.key === 'name' && (
+                            sortConfig.direction === 'ascending' ? <SortAsc className="h-4 w-4" /> : <SortDesc className="h-4 w-4" />
+                          )}
+                        </div>
+                      </th>
+                      <th className="h-12 px-4 text-left align-middle font-medium">
+                        <div 
+                          className="flex items-center gap-1 cursor-pointer"
+                          onClick={() => handleSort('type')}
+                        >
+                          Type
+                          {sortConfig.key === 'type' && (
+                            sortConfig.direction === 'ascending' ? <SortAsc className="h-4 w-4" /> : <SortDesc className="h-4 w-4" />
+                          )}
+                        </div>
+                      </th>
+                      <th className="h-12 px-4 text-left align-middle font-medium">
+                        <div 
+                          className="flex items-center gap-1 cursor-pointer"
+                          onClick={() => handleSort('price')}
+                        >
+                          Price
+                          {sortConfig.key === 'price' && (
+                            sortConfig.direction === 'ascending' ? <SortAsc className="h-4 w-4" /> : <SortDesc className="h-4 w-4" />
+                          )}
+                        </div>
+                      </th>
+                      <th className="h-12 px-4 text-left align-middle font-medium">
+                        <div 
+                          className="flex items-center gap-1 cursor-pointer"
+                          onClick={() => handleSort('created_at')}
+                        >
+                          Date Added
+                          {sortConfig.key === 'created_at' && (
+                            sortConfig.direction === 'ascending' ? <SortAsc className="h-4 w-4" /> : <SortDesc className="h-4 w-4" />
+                          )}
+                        </div>
+                      </th>
+                      <th className="h-12 px-4 text-left align-middle font-medium">ID</th>
+                      <th className="h-12 px-4 text-right align-middle font-medium">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="[&_tr:last-child]:border-0">
+                    {loading ? (
+                      [...Array(5)].map((_, i) => (
+                        <tr key={i} className="border-b transition-colors hover:bg-muted/50">
+                          <td className="p-4 align-middle">
+                            <Skeleton className="h-5 w-32" />
+                          </td>
+                          <td className="p-4 align-middle">
+                            <Skeleton className="h-5 w-16" />
+                          </td>
+                          <td className="p-4 align-middle">
+                            <Skeleton className="h-5 w-20" />
+                          </td>
+                          <td className="p-4 align-middle">
+                            <Skeleton className="h-5 w-24" />
+                          </td>
+                          <td className="p-4 align-middle">
+                            <Skeleton className="h-5 w-16" />
+                          </td>
+                          <td className="p-4 align-middle text-right">
+                            <Skeleton className="h-9 w-24 ml-auto" />
+                          </td>
+                        </tr>
+                      ))
+                    ) : filteredAssets.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="p-4 text-center text-gray-500">
+                          No assets found. {searchQuery && 'Try adjusting your search query.'}
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredAssets.map((asset) => (
+                        <motion.tr 
+                          key={asset.id}
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          className="border-b transition-colors hover:bg-muted/50"
+                        >
+                          <td className="p-4 align-middle font-medium">{asset.name}</td>
+                          <td className="p-4 align-middle">
+                            <Badge variant="outline">{asset.type}</Badge>
+                          </td>
+                          <td className="p-4 align-middle font-medium">${parseFloat(asset.price).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                          <td className="p-4 align-middle">{new Date(asset.created_at).toLocaleDateString()}</td>
+                          <td className="p-4 align-middle text-gray-500">{asset.id}</td>
+                          <td className="p-4 align-middle text-right">
+                            <div className="flex gap-2 justify-end">
+                              {/* <Button 
+                                variant="ghost" 
+                                size="sm"
+                              >
+                                <Info className="mr-2 h-4 w-4" />
+                                Details
+                              </Button> */}
+                              <Button 
+                                variant="default" 
+                                size="sm"
+                                onClick={() => handleBuyAsset(asset)}
+                              >
+                                <ShoppingCart className="mr-2 h-4 w-4" />
+                                Buy
+                              </Button>
+                            </div>
+                          </td>
+                        </motion.tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
               </div>
             </div>
-          ))}
-        </div>
-      ) : (
-        <AnimatePresence>
-          <motion.div 
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-          >
-            {filteredAssets.length === 0 ? (
-              <motion.div 
-                className="col-span-full text-center py-12"
-                variants={fadeVariants}
-              >
-                <p className="text-lg text-gray-500">No assets found matching your criteria</p>
-                <Button 
-                  variant="outline" 
-                  className="mt-4"
-                  onClick={() => {
-                    setSearchQuery('');
-                    setActiveFilter('All');
-                  }}
-                >
-                  Clear filters
-                </Button>
-              </motion.div>
-            ) : (
-              filteredAssets.map((asset) => (
-                <motion.div 
-                  key={asset.id}
-                  variants={cardVariants}
-                  whileHover="hover"
-                  layoutId={`asset-${asset.id}`}
-                >
-                  <Card className="overflow-hidden h-full">
-                    <CardContent className="p-6">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h3 className="font-semibold text-lg line-clamp-2">{asset.name}</h3>
-                          <Badge className="mt-2" variant="outline">{asset.type}</Badge>
-                        </div>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <ChevronDown className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem className="flex gap-2 items-center">
-                              <Info className="h-4 w-4" />
-                              View Details
-                            </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              className="flex gap-2 items-center"
-                              onClick={() => handleBuyAsset(asset)}
-                            >
-                              <ShoppingCart className="h-4 w-4" />
-                              Buy Asset
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                      
-                      <div className="mt-6">
-                        <span className="text-sm text-gray-500">Current Price</span>
-                        <p className="text-2xl font-bold">${parseFloat(asset.price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-                      </div>
-                    </CardContent>
-                    
-                    <CardFooter className="bg-muted/50 px-6 py-3">
-                      <div className="text-xs text-gray-500 w-full flex justify-between">
-                        <span>Added {new Date(asset.created_at).toLocaleDateString()}</span>
-                        <span>ID: {asset.id}</span>
-                      </div>
-                    </CardFooter>
-                  </Card>
-                </motion.div>
-              ))
-            )}
-          </motion.div>
-        </AnimatePresence>
-      )}
+          </TabsContent>
+        </Tabs>
+      </motion.div>
 
       {/* Buy Asset Modal */}
       <Dialog open={showBuyModal} onOpenChange={setShowBuyModal}>
@@ -486,21 +670,30 @@ export default function BrowseAssets() {
                   ${parseFloat(selectedAsset.price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
               </div>
-
-              {/* Quantity Selector */}
+              
               <div className="flex justify-between items-center py-2 border-b">
-                <span className="font-medium">Quantity</span>
+                <span>Quantity</span>
                 <div className="flex items-center gap-3">
                   <Button
                     variant="outline"
                     size="icon"
                     className="h-8 w-8"
                     onClick={() => handleQuantityChange(-1)}
-                    disabled={quantity <= 1}
+                    disabled={quantity <= 0.01}
                   >
                     <Minus className="h-4 w-4" />
                   </Button>
-                  <span className="w-12 text-center font-semibold">{quantity}</span>
+                  <Input
+                    type="number"
+                    value={quantity}
+                    onChange={(e) => {
+                      const value = parseFloat(e.target.value) || 0;
+                      setQuantity(Math.max(0.01, Math.round(value * 100) / 100));
+                    }}
+                    className="w-20 text-center font-semibold"
+                    min="0.01"
+                    step="0.01"
+                  />
                   <Button
                     variant="outline"
                     size="icon"
@@ -511,43 +704,41 @@ export default function BrowseAssets() {
                   </Button>
                 </div>
               </div>
-
-              {/* Total Price */}
-              <div className="flex justify-between items-center py-3 bg-blue-50 rounded-lg px-4 border border-blue-200">
-                <span className="font-semibold text-blue-900">Total Price</span>
-                <span className="font-bold text-xl text-blue-900">
+              
+              <div className="flex justify-between items-center py-3 border-t bg-muted/30 rounded-lg px-4">
+                <span className="font-semibold">Total Price</span>
+                <span className="text-xl font-bold text-green-600">
                   ${getTotalPrice().toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
               </div>
               
-              <div className="flex justify-between items-center py-2">
-                <span className="flex items-center gap-2">
-                  <Wallet className="h-4 w-4" />
-                  Account Balance
-                </span>
-                <span className="font-semibold text-green-600">
-                  ${userData.accountBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </span>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Wallet className="h-4 w-4" />
+                <span>Available Balance: ${userData.accountBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
-              
-              {userData.accountBalance < getTotalPrice() && (
-                <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 p-3 rounded-lg border border-red-200">
-                  <AlertCircle className="h-4 w-4" />
-                  Insufficient balance for this purchase. You need ${(getTotalPrice() - userData.accountBalance).toFixed(2)} more.
-                </div>
-              )}
             </div>
           )}
           
-          <DialogFooter className="flex gap-2">
+          <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setShowBuyModal(false)}>
               Cancel
             </Button>
             <Button 
               onClick={handleProceedToBuy}
-              disabled={selectedAsset && userData.accountBalance < getTotalPrice()}
+              disabled={isProcessing || !selectedAsset || userData.accountBalance < getTotalPrice()}
+              className="flex items-center gap-2"
             >
-              Buy Now
+              {isProcessing ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <ShoppingCart className="h-4 w-4" />
+                  Confirm Purchase
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -562,7 +753,7 @@ export default function BrowseAssets() {
               Security Verification
             </DialogTitle>
             <DialogDescription>
-              Please enter your 4-digit security PIN to complete the purchase of {quantity} {quantity > 1 ? 'units' : 'unit'} for ${getTotalPrice().toFixed(2)}.
+              Please enter your security PIN to complete the purchase.
             </DialogDescription>
           </DialogHeader>
           
@@ -570,39 +761,62 @@ export default function BrowseAssets() {
             <div>
               <Input
                 type="password"
-                placeholder="Enter 4-digit PIN"
+                placeholder="Enter your security PIN"
                 value={pin}
                 onChange={(e) => {
                   setPin(e.target.value);
                   setPinError('');
                 }}
+                className={pinError ? 'border-red-500' : ''}
                 maxLength={4}
-                className="text-center text-lg tracking-widest"
               />
               {pinError && (
-                <p className="text-red-600 text-sm mt-2 flex items-center gap-1">
+                <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
                   <AlertCircle className="h-4 w-4" />
                   {pinError}
                 </p>
               )}
             </div>
+            
+            {selectedAsset && (
+              <div className="bg-muted/50 rounded-lg p-3 text-sm">
+                <div className="flex justify-between">
+                  <span>Asset:</span>
+                  <span className="font-semibold">{selectedAsset.name}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Quantity:</span>
+                  <span className="font-semibold">{quantity}</span>
+                </div>
+                <div className="flex justify-between border-t pt-2 mt-2">
+                  <span>Total Amount:</span>
+                  <span className="font-bold text-green-600">
+                    ${getTotalPrice().toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
           
-          <DialogFooter className="flex gap-2">
+          <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setShowPinModal(false)}>
               Cancel
             </Button>
             <Button 
               onClick={handlePinSubmit}
               disabled={isProcessing || !pin}
+              className="flex items-center gap-2"
             >
               {isProcessing ? (
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Processing...
-                </div>
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  Verifying...
+                </>
               ) : (
-                'Confirm Purchase'
+                <>
+                  <Check className="h-4 w-4" />
+                  Confirm Purchase
+                </>
               )}
             </Button>
           </DialogFooter>
@@ -619,22 +833,19 @@ export default function BrowseAssets() {
               ) : (
                 <AlertCircle className="h-5 w-5 text-red-600" />
               )}
-              Purchase {purchaseResult.success ? 'Successful' : 'Failed'}
+              {purchaseResult.success ? 'Purchase Successful' : 'Purchase Failed'}
             </DialogTitle>
           </DialogHeader>
           
-          <div className="space-y-4">
-            <div className={`p-4 rounded-lg ${purchaseResult.success ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
-              <p className={purchaseResult.success ? 'text-green-800' : 'text-red-800'}>
-                {purchaseResult.message}
-              </p>
-            </div>
+          <div className="py-4">
+            <p className={`text-center ${purchaseResult.success ? 'text-green-600' : 'text-red-600'}`}>
+              {purchaseResult.message}
+            </p>
             
             {purchaseResult.success && (
-              <div className="bg-muted/50 rounded-lg p-4">
-                <p className="text-sm text-gray-600">Updated Account Balance:</p>
-                <p className="text-lg font-semibold text-green-600">
-                  ${userData.accountBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              <div className="mt-4 bg-green-50 border border-green-200 rounded-lg p-3">
+                <p className="text-sm text-green-800">
+                  Your updated account balance: <span className="font-semibold">${userData.accountBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </p>
               </div>
             )}
@@ -642,7 +853,7 @@ export default function BrowseAssets() {
           
           <DialogFooter>
             <Button onClick={closeAllModals} className="w-full">
-              {purchaseResult.success ? 'Continue Shopping' : 'Try Again'}
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>
