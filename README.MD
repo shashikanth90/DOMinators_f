@@ -1,4 +1,4 @@
-https://www.canva.com/design/DAGvN5u-S38/gTyBAc3NsEzdXnISeVcNSg/edit
+ 
 User Story
 Title: Manage Personal Financial Portfolio
 As a user:
