@@ -18,7 +18,10 @@ import {
   Package,
   DollarSign,
   Calendar,
-  BarChart3
+  BarChart3,
+  Lock, 
+  AlertCircle, 
+  Check
 } from 'lucide-react';
 
 import {
@@ -74,7 +77,23 @@ export default function Holdings() {
   const [viewMode, setViewMode] = useState('cards');
   const [assetPrices, setAssetPrices] = useState({});
 
-    // Update the useEffect hook for fetching prices
+  // state variables for security pin 
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [pin, setPin] = useState('');
+  const [pinError, setPinError] = useState('');
+  const [userData, setUserData] = useState({
+    securityPin: '1234' // In a real app, this would be fetched or set during login
+  });
+
+  // sell holding states
+  const [sellModalOpen, setSellModalOpen] = useState(false);
+  const [selectedHoldingForSell, setSelectedHoldingForSell] = useState(null);
+  const [sellQuantity, setSellQuantity] = useState("");
+  const [sellLoading, setSellLoading] = useState(false);
+  const [sellError, setSellError] = useState("");
+  const [sellSuccess, setSellSuccess] = useState(false);
+
+  // useEffect hook for fetching prices
   useEffect(() => {
     const fetchHoldings = async () => {
       setLoading(true);
@@ -152,6 +171,96 @@ export default function Holdings() {
     
     fetchHoldings();
   }, []);
+
+  // functions to handle selling
+  const openSellModal = (holding) => {
+    setSelectedHoldingForSell(holding);
+    setSellQuantity(""); // Reset quantity field
+    setSellError(""); // Clear any previous errors
+    setSellSuccess(false); // Reset success state
+    setSellModalOpen(true);
+  };
+
+  const closeSellModal = () => {
+    setSellModalOpen(false);
+    setSelectedHoldingForSell(null);
+  };
+
+  // Handle sell holding logic
+  const handleSellHolding = () => {
+    // Validate the input
+    if (!sellQuantity || isNaN(sellQuantity) || parseFloat(sellQuantity) <= 0) {
+      setSellError("Please enter a valid quantity");
+      return;
+    }
+  
+    const quantityToSell = parseFloat(sellQuantity);
+    const availableQuantity = parseFloat(selectedHoldingForSell.quantity);
+  
+    if (quantityToSell > availableQuantity) {
+      setSellError(`You can't sell more than you own (${availableQuantity} available)`);
+      return;
+    }
+  
+    // Proceed to PIN verification
+    setSellError("");
+    setShowPinModal(true);
+    setPin('');
+    setPinError('');
+  };
+  
+  const processSellWithPin = async () => {
+    // Verify PIN
+    if (!pin) {
+      setPinError('Please enter your security PIN');
+      return;
+    }
+  
+    if (pin !== userData.securityPin) {
+      setPinError('Invalid PIN. Please try again.');
+      return;
+    }
+  
+    setSellLoading(true);
+    setShowPinModal(false);
+  
+    try {
+      // Make API call to sell the holding
+      const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/holdings/sell`, {
+        holding_id: selectedHoldingForSell.id,
+        quantity: parseFloat(sellQuantity)
+      });
+  
+      // Update the UI
+      setSellSuccess(true);
+      
+      // Refresh holdings data after selling
+      const holdingsResponse = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/holdings`);
+      const data = holdingsResponse.data;
+      
+      // Calculate total value for each holding
+      const holdingsWithValue = data.map(holding => ({
+        ...holding,
+        total_value: (parseFloat(holding.quantity) * parseFloat(holding.purchase_price)).toFixed(2),
+        purchase_date_formatted: format(new Date(holding.purchase_date), 'MMM dd, yyyy')
+      }));
+      
+      setHoldings(holdingsWithValue);
+      setFilteredHoldings(holdingsWithValue);
+      
+      // Close the modal automatically after 1.5 seconds
+      setTimeout(() => {
+        closeSellModal();
+      }, 1500);
+      
+    } catch (error) {
+      console.error('Error selling holding:', error);
+      setSellError(error.response?.data?.message || "Failed to sell holding. Please try again.");
+      setSellSuccess(false);
+    } finally {
+      setSellLoading(false);
+    }
+  };
   
   // Filter and sort holdings
   useEffect(() => {
@@ -607,7 +716,7 @@ export default function Holdings() {
                           )}
                         </div>
                       </th>
-                      <th className="h-12 px-4 text-right align-middle font-medium">Actions</th>
+                      <th className="h-12 px-4 text-middle align-middle font-medium">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="[&_tr:last-child]:border-0">
@@ -684,14 +793,35 @@ export default function Holdings() {
                             <td className="p-4 align-middle">
                               <span>${parseFloat(holding.total_value).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
                             </td>
-                            <td className="p-4 align-middle text-right">
-                              <Button 
-                                variant="outline"
-                                size="sm"
-                                onClick={() => openAssetDetails(holding)}
-                              >
-                                <Info className="h-4 w-4" />
-                              </Button>
+                            <td className="p-4 align-middle">
+                              <div className="flex flex-wrap gap-2 justify-center">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="flex items-center gap-1 border-emerald-200 hover:bg-emerald-50 hover:text-emerald-600 transition-colors"
+                                >
+                                  <TrendingUp className="h-3.5 w-3.5" />
+                                  <span className="text-xs">Buy Again</span>
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="flex items-center gap-1 border-red-200 hover:bg-red-50 hover:text-red-600 transition-colors"
+                                  onClick={() => openSellModal(holding)}
+                                >
+                                  <TrendingDown className="h-3.5 w-3.5" />
+                                  <span className="text-xs">Sell</span>
+                                </Button>
+                                <Button 
+                                  variant="outline"
+                                  size="sm"
+                                  className="flex items-center gap-1 border-blue-200 hover:bg-blue-50 hover:text-blue-600 transition-colors"
+                                  onClick={() => openAssetDetails(holding)}
+                                >
+                                  <Info className="h-3.5 w-3.5" />
+                                  <span className="text-xs">Details</span>
+                                </Button>
+                              </div>
                             </td>
                           </tr>
                         );
@@ -830,6 +960,188 @@ export default function Holdings() {
           
           <DialogFooter>
             <Button onClick={closeAssetDetails}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Sell Modal */}
+      <Dialog open={sellModalOpen} onOpenChange={(open) => !open && closeSellModal()}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>
+              Sell {selectedHoldingForSell?.name}
+            </DialogTitle>
+            <DialogDescription>
+              Enter the quantity you want to sell at the current market price.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {sellSuccess ? (
+            <div className="py-6 text-center">
+              <div className="flex justify-center mb-4">
+                <div className="rounded-full bg-green-100 p-3">
+                  <TrendingDown className="h-6 w-6 text-green-600" />
+                </div>
+              </div>
+              <h3 className="text-lg font-medium text-green-600 mb-1">Sale Successful!</h3>
+              <p className="text-gray-500">Your holdings have been updated</p>
+            </div>
+          ) : (
+            <div className="py-4">
+              {selectedHoldingForSell && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-gray-500 mb-1">Available</p>
+                      <p className="font-medium">{parseFloat(selectedHoldingForSell.quantity).toLocaleString()} units</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500 mb-1">Current Price</p>
+                      <p className="font-medium">
+                        ${parseFloat(assetPrices[selectedHoldingForSell.id] || selectedHoldingForSell.purchase_price).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium" htmlFor="sellQuantity">
+                      Quantity to Sell
+                    </label>
+                    <Input
+                      id="sellQuantity"
+                      type="number"
+                      min="0.01"
+                      step="0.01"
+                      max={selectedHoldingForSell.quantity}
+                      value={sellQuantity}
+                      onChange={(e) => setSellQuantity(e.target.value)}
+                      placeholder={`Enter quantity (max: ${parseFloat(selectedHoldingForSell.quantity).toLocaleString()})`}
+                    />
+                    
+                    {sellQuantity && !isNaN(sellQuantity) && parseFloat(sellQuantity) > 0 && (
+                      <div className="rounded-md bg-muted p-3 mt-3">
+                        <p className="text-sm text-gray-500 mb-1">Sale Summary</p>
+                        <div className="flex justify-between">
+                          <span>Total Sale Value:</span>
+                          <span className="font-medium">
+                            ${(parseFloat(sellQuantity) * parseFloat(assetPrices[selectedHoldingForSell.id] || selectedHoldingForSell.purchase_price)).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {sellError && (
+                    <div className="bg-red-50 border border-red-200 text-red-600 p-3 rounded-md text-sm">
+                      {sellError}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+          
+          <DialogFooter>
+            {!sellSuccess && (
+              <>
+                <Button variant="outline" onClick={closeSellModal}>
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleSellHolding} 
+                  disabled={sellLoading || !sellQuantity || isNaN(sellQuantity) || parseFloat(sellQuantity) <= 0}
+                  className={sellLoading ? "opacity-70" : ""}
+                >
+                  {sellLoading ? (
+                    <>
+                      <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                      Processing...
+                    </>
+                  ) : (
+                    "Sell Asset"
+                  )}
+                </Button>
+              </>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Security PIN Modal */}
+      <Dialog open={showPinModal} onOpenChange={setShowPinModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Lock className="h-5 w-5" />
+              Security Verification
+            </DialogTitle>
+            <DialogDescription>
+              Please enter your security PIN to complete the sale.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div>
+              <Input
+                type="password"
+                placeholder="Enter your security PIN"
+                value={pin}
+                onChange={(e) => {
+                  setPin(e.target.value);
+                  setPinError('');
+                }}
+                className={pinError ? 'border-red-500' : ''}
+                maxLength={4}
+              />
+              {pinError && (
+                <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
+                  <AlertCircle className="h-4 w-4" />
+                  {pinError}
+                </p>
+              )}
+            </div>
+            
+            {selectedHoldingForSell && (
+              <div className="bg-muted/50 rounded-lg p-3 text-sm">
+                <div className="flex justify-between">
+                  <span>Asset:</span>
+                  <span className="font-semibold">{selectedHoldingForSell.name}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Quantity to Sell:</span>
+                  <span className="font-semibold">{sellQuantity}</span>
+                </div>
+                <div className="flex justify-between border-t pt-2 mt-2">
+                  <span>Total Sale Value:</span>
+                  <span className="font-bold text-green-600">
+                    ${(parseFloat(sellQuantity) * parseFloat(assetPrices[selectedHoldingForSell.id] || selectedHoldingForSell.purchase_price)).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+          
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setShowPinModal(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={processSellWithPin}
+              disabled={sellLoading || !pin}
+              className="flex items-center gap-2"
+            >
+              {sellLoading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  Verifying...
+                </>
+              ) : (
+                <>
+                  <Check className="h-4 w-4" />
+                  Confirm Sale
+                </>
+              )}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
