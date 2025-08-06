@@ -66,6 +66,28 @@ export default function Dashboard() {
         // Fetch portfolio summary
         const portfolioResponse = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/portfolio/summary`);
         setPortfolioData(portfolioResponse.data);
+
+         // Fetch net worth history data
+        const networthResponse = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/networth/get-networth`);
+        
+        if (networthResponse.data && networthResponse.data.length > 0) {
+          // Process the networth data and update the portfolio data
+          const historyData = networthResponse.data.map(item => ({
+            date: format(new Date(item.date), 'yyyy-MM-dd'),
+            value: parseFloat(item.total)
+          })).sort((a, b) => new Date(a.date) - new Date(b.date)); // Sort by date ascending
+
+          setPortfolioData(prevData => ({
+            ...prevData,
+            history: historyData,
+            // Calculate changes based on actual data
+            daily_change: calculatePercentageChange(historyData, 1),
+            weekly_change: calculatePercentageChange(historyData, 7),
+            monthly_change: calculatePercentageChange(historyData, 30),
+            yearly_change: calculatePercentageChange(historyData, 365),
+            total_value: historyData.length > 0 ? historyData[historyData.length - 1].value : 0
+          }));
+        }
         
         // Fetch holdings
         const holdingsResponse = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/holdings`);
@@ -137,6 +159,29 @@ export default function Dashboard() {
     
     fetchDashboardData();
   }, []);
+
+  // Helper function to calculate percentage change over periods
+  const calculatePercentageChange = (data, days) => {
+    if (!data || data.length < 2) return 0;
+    
+    const latestValue = data[data.length - 1].value;
+    
+    // Find the value 'days' days ago, or the earliest available
+    let compareIndex = 0;
+    const compareDate = subDays(new Date(), days);
+    
+    for (let i = 0; i < data.length; i++) {
+      if (new Date(data[i].date) >= compareDate) {
+        compareIndex = i;
+        break;
+      }
+    }
+    
+    const previousValue = data[compareIndex].value;
+    if (previousValue === 0) return 0;
+    
+    return ((latestValue - previousValue) / previousValue * 100).toFixed(2);
+  };
   
   // Generate mock data for demo purposes
   const generateMockHistoryData = () => {
@@ -362,7 +407,7 @@ export default function Dashboard() {
   
   const portfolioChartSeries = [
     {
-      name: 'Portfolio Value',
+      name: "Portfolio Value",
       data: historicalData.map(item => ({
         x: new Date(item.date).getTime(),
         y: parseFloat(item.value)
@@ -680,13 +725,13 @@ export default function Dashboard() {
               <div>
                 <span className="block text-gray-500">Starting:</span>
                 <span className="font-medium">
-                  ${historicalData[0]?.value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
+                  ${historicalData.length > 0 ? historicalData[0].value.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '0.00'}
                 </span>
               </div>
               <div>
                 <span className="block text-gray-500">Current:</span>
                 <span className="font-medium">
-                  ${historicalData[historicalData.length-1]?.value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
+                  ${historicalData.length > 0 ? historicalData[historicalData.length-1].value.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '0.00'}
                 </span>
               </div>
               <div>
