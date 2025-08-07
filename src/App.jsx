@@ -90,7 +90,7 @@ function MainApp() {
               </div>
               <div className="flex flex-col">
                 <span className="font-bold text-xl bg-gradient-to-r from-primary to-indigo-600 bg-clip-text text-transparent tracking-tight">
-                  FinTrack
+                  Investo
                 </span>
                 <span className="text-xs text-muted-foreground">Financial Portal</span>
               </div>
@@ -178,13 +178,13 @@ function MainApp() {
             })}
           </ul>
           
-          {!sidebarCollapsed && (
+          {/* {!sidebarCollapsed && (
             <div className="mt-8 mb-2 px-2">
               <h3 className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Account</h3>
             </div>
-          )}
+          )} */}
           
-          <ul className="space-y-1.5">
+          {/* <ul className="space-y-1.5">
             <li>
               <button className="flex items-center w-full p-2.5 rounded-xl transition-all duration-200 hover:bg-accent/50 text-foreground">
                 <div className="flex items-center justify-center h-6 w-6 text-muted-foreground">
@@ -213,7 +213,7 @@ function MainApp() {
                 )}
               </button>
             </li>
-          </ul>
+          </ul> */}
         </nav>
 
         {/* Bottom Area with Theme Toggle */}
@@ -234,7 +234,7 @@ function MainApp() {
             )}
           </button>
           
-          <button
+          {/* <button
             className="flex items-center w-full p-2.5 rounded-xl transition-all duration-200 hover:bg-accent/50 text-foreground"
           >
             <div className="flex items-center justify-center h-6 w-6 text-muted-foreground">
@@ -243,7 +243,7 @@ function MainApp() {
             {!sidebarCollapsed && (
               <span className="ml-3">Settings</span>
             )}
-          </button>
+          </button> */}
           
           <button
             onClick={logout}

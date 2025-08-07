@@ -547,14 +547,14 @@ export default function Dashboard() {
             <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? 'animate-spin' : ''}`} />
             <span>Refresh</span>
           </Button>
-          <Button 
+          {/* <Button 
             variant="default" 
             size="sm" 
             className="flex items-center gap-1.5 h-9 bg-gradient-to-r from-primary to-indigo-600 hover:from-primary/90 hover:to-indigo-600/90"
           >
             <Filter className="h-3.5 w-3.5" />
             <span>Filters</span>
-          </Button>
+          </Button> */}
         </div>
       </motion.div>
       

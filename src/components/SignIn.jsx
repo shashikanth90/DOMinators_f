@@ -97,9 +97,9 @@ export default function SignIn() {
           <motion.div variants={itemVariants} className="mb-8 text-center">
             <h1 className="text-3xl font-bold tracking-tight mb-2 flex items-center justify-center">
               <BadgeDollarSign className="h-8 w-8 mr-2 text-primary" />
-              <span>Financial Portal</span>
+              <span>Investo</span>
             </h1>
-            <p className="text-gray-500">Sign in to access your portfolio dashboard</p>
+            <p className="text-gray-500">Sign in to access your financial dashboard</p>
           </motion.div>
 
           <motion.div variants={itemVariants}>
@@ -128,10 +128,10 @@ export default function SignIn() {
                   </div>
 
                   <div className="space-y-2">
-                    <div className="flex items-center justify-between">
+                    {/* <div className="flex items-center justify-between">
                       <label className="text-sm font-medium">Password</label>
                       <a href="#" className="text-xs text-primary hover:underline">Forgot password?</a>
-                    </div>
+                    </div> */}
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
                         <Lock className="h-5 w-5" />
@@ -173,9 +173,9 @@ export default function SignIn() {
                   </Button>
                 </form>
               </CardContent>
-              <CardFooter className="text-center text-sm text-gray-500">
+              {/* <CardFooter className="text-center text-sm text-gray-500">
                 Don't have an account? <span className="text-primary ml-1">Contact administrator</span>
-              </CardFooter>
+              </CardFooter> */}
             </Card>
           </motion.div>
         </motion.div>
@@ -210,7 +210,7 @@ export default function SignIn() {
           initial="hidden"
           animate="visible"
           transition={{ delay: 0.6 }}
-          className="absolute top-1/3 right-1/4 bg-white/10 backdrop-blur-lg p-4 rounded-xl shadow-lg border border-white/20"
+          className="absolute top-1/3 right-1/10 bg-white/10 backdrop-blur-lg p-4 rounded-xl shadow-lg border border-white/20"
         >
           <LineChart className="h-9 w-9 text-white" />
         </motion.div>
@@ -220,7 +220,7 @@ export default function SignIn() {
           initial="hidden"
           animate="visible"
           transition={{ delay: 0.8 }}
-          className="absolute top-1/2 right-1/3 bg-white/10 backdrop-blur-lg p-4 rounded-xl shadow-lg border border-white/20"
+          className="absolute top-1/6 right-1/3 bg-white/10 backdrop-blur-lg p-4 rounded-xl shadow-lg border border-white/20"
         >
           <Briefcase className="h-7 w-7 text-white" />
         </motion.div>
