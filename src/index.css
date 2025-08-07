@@ -3,6 +3,13 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Add Poppins as default font */
+@layer base {
+  html {
+    font-family: 'Poppins', sans-serif;
+  }
+}
+
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -42,72 +49,83 @@
 }
 
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
+  --radius: 0.75rem;
+  
+  /* Enhanced Light Theme Colors */
+  --background: oklch(0.99 0 0);
+  --foreground: oklch(0.125 0 0);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --card-foreground: oklch(0.125 0 0);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
+  --popover-foreground: oklch(0.125 0 0);
+  --primary: oklch(0.55 0.24 264);  /* More vibrant blue */
+  --primary-foreground: oklch(0.99 0 0);
   --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
+  --secondary-foreground: oklch(0.125 0 0);
   --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --muted-foreground: oklch(0.45 0 0);
+  --accent: oklch(0.97 0.04 264);  /* Light accent blue */
+  --accent-foreground: oklch(0.125 0 0);
+  --destructive: oklch(0.65 0.275 27);  /* More vibrant red */
+  --border: oklch(0.89 0 0);
+  --input: oklch(0.89 0 0);
+  --ring: oklch(0.55 0.24 264);  /* Match primary for focus */
+  
+  /* Enhanced chart colors for better visibility and distinction */
+  --chart-1: oklch(0.65 0.23 264);
+  --chart-2: oklch(0.62 0.25 41);
+  --chart-3: oklch(0.58 0.22 160);
+  --chart-4: oklch(0.63 0.24 84);
+  --chart-5: oklch(0.76 0.19 70);
+  
+  /* Enhanced sidebar */
+  --sidebar: oklch(0.125 0 0);
+  --sidebar-foreground: oklch(0.99 0 0);
+  --sidebar-primary: oklch(0.55 0.24 264);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-accent: oklch(0.2 0 0);
+  --sidebar-accent-foreground: oklch(0.99 0 0);
+  --sidebar-border: oklch(0.2 0 0);
+  --sidebar-ring: oklch(0.55 0.24 264);
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  /* Enhanced Dark Theme Colors */
+  --background: oklch(0.125 0 0);
+  --foreground: oklch(0.99 0 0);
+  --card: oklch(0.175 0 0);
+  --card-foreground: oklch(0.99 0 0);
+  --popover: oklch(0.175 0 0);
+  --popover-foreground: oklch(0.99 0 0);
+  --primary: oklch(0.6 0.25 264);  /* Brighter blue for dark mode */
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.22 0 0);
+  --secondary-foreground: oklch(0.99 0 0);
+  --muted: oklch(0.22 0 0);
+  --muted-foreground: oklch(0.75 0 0);
+  --accent: oklch(0.22 0.08 264);  /* Dark accent blue */
+  --accent-foreground: oklch(0.99 0 0);
+  --destructive: oklch(0.7 0.25 22);  /* Brighter red for dark mode */
+  --border: oklch(0.25 0 0);
+  --input: oklch(0.3 0 0);
+  --ring: oklch(0.6 0.25 264);
+  
+  /* Enhanced chart colors for dark mode */
+  --chart-1: oklch(0.6 0.25 264);
+  --chart-2: oklch(0.7 0.25 41);
+  --chart-3: oklch(0.68 0.22 160);
+  --chart-4: oklch(0.72 0.24 84);
+  --chart-5: oklch(0.76 0.19 70);
+  
+  /* Enhanced sidebar for dark mode */
+  --sidebar: oklch(0.14 0 0);
+  --sidebar-foreground: oklch(0.99 0 0);
+  --sidebar-primary: oklch(0.6 0.25 264);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-accent: oklch(0.22 0 0);
+  --sidebar-accent-foreground: oklch(0.99 0 0);
+  --sidebar-border: oklch(0.25 0 0);
+  --sidebar-ring: oklch(0.6 0.25 264);
 }
 
 @layer base {
@@ -116,5 +134,98 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    font-family: 'Poppins', sans-serif;
   }
+}
+
+/* Custom background pattern for light mode */
+/* .bg-light-pattern {
+  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M54.627 0l.83.828-1.415 1.415L51.8 0h2.827zM5.373 0l-.83.828L5.96 2.243 8.2 0H5.374zM48.97 0l3.657 3.657-1.414 1.414L46.143 0h2.828zM11.03 0L7.372 3.657 8.787 5.07 13.857 0H11.03zm32.284 0L49.8 6.485 48.384 7.9l-7.9-7.9h2.83zM16.686 0L10.2 6.485 11.616 7.9l7.9-7.9h-2.83zm20.97 0l9.315 9.314-1.414 1.414L34.828 0h2.83zM22.344 0L13.03 9.314l1.414 1.414L25.172 0h-2.83zM32 0l12.142 12.142-1.414 1.414L30 .828 17.272 13.556l-1.414-1.414L28 0h4zM.284 0l28 28-1.414 1.414L0 2.544v2.12l26.87 26.87-1.414 1.415L0 7.655v2.12l25.456 25.456-1.414 1.415L0 12.77v2.123l24.042 24.042-1.414 1.415L0 17.884v2.123l22.627 22.627-1.414 1.415L0 22.997v2.12l21.213 21.213-1.415 1.415L0 28.11v2.123l19.8 19.8-1.415 1.413L0 33.22v2.123l18.384 18.384-1.414 1.414L0 38.335v2.12l16.97 16.97-1.414 1.415L0 43.447v2.12l15.556 15.557-1.414 1.415L0 48.562v2.12l14.142 14.142-1.414 1.415L0 53.677v2.12l12.728 12.73-1.414 1.413L0 58.79v2.123l11.314 11.314-1.414 1.414L0 63.923v2.12l9.9 9.9-1.414 1.414L0 69.04v2.123l8.485 8.485-1.414 1.414L0 74.17v2.12l7.07 7.072-1.414 1.414L0 79.283v2.12l5.657 5.657-1.414 1.415L0 84.395v2.12l4.243 4.243-1.415 1.415L0 89.507v2.12l2.828 2.83-1.414 1.413L0 94.62v2.123l1.414 1.414L0 99.77v2.12h2.123L0 104.78v2.123h60v-2.12L30 74.77 60 44.78v-2.122L45.657 57.07 60 42.72v-2.12L35.172 65.6 60 40.88v-2.123L25.657 68.242 60 33.9v-2.12L16.142 70.9 60 27.04v-2.12L6.628 73.53 60 20.158v-2.12L-3.172 76.114 60 12.942v-2.12L-13.03 78.686 60 5.656v-2.12L-20 60.485 60 .485V0h-7.87zM0 107.917h60v-2.12L30 75.782 0 105.796v2.12zm0-2.372v.252h60v-.252L30 75.523 0 105.545zm60-2.622h-2.038l-27.96 27.96h2.037l27.96-27.96zm-5.188 0h-2.037l-27.96 27.96h2.037l27.96-27.96zm-5.188-.002h-2.037l-27.96 27.96h2.037l27.96-27.96zm-5.186-.002h-2.037l-27.96 27.96h2.037l27.96-27.96zm-5.187-.002h-2.037l-27.96 27.96h2.037l27.96-27.96zM29.74 81.52h-2.038l-27.96 27.96h2.037l27.96-27.96zm-5.19 0h-2.035l-27.96 27.96h2.037l27.96-27.96zm-5.186 0H17.33l-27.96 27.96h2.035l27.96-27.96zm-5.186 0h-2.035l-27.96 27.96h2.037l27.96-27.96zm-5.186 0H8.956l-27.96 27.96h2.037l27.96-27.96z' fill='%23f6f6f6' fill-opacity='1' fill-rule='evenodd'/%3E%3C/svg%3E");
+} */
+
+/* Custom background pattern for dark mode */
+.dark .bg-dark-pattern {
+  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M54.627 0l.83.828-1.415 1.415L51.8 0h2.827zM5.373 0l-.83.828L5.96 2.243 8.2 0H5.374zM48.97 0l3.657 3.657-1.414 1.414L46.143 0h2.828zM11.03 0L7.372 3.657 8.787 5.07 13.857 0H11.03zm32.284 0L49.8 6.485 48.384 7.9l-7.9-7.9h2.83zM16.686 0L10.2 6.485 11.616 7.9l7.9-7.9h-2.83zm20.97 0l9.315 9.314-1.414 1.414L34.828 0h2.83zM22.344 0L13.03 9.314l1.414 1.414L25.172 0h-2.83zM32 0l12.142 12.142-1.414 1.414L30 .828 17.272 13.556l-1.414-1.414L28 0h4zM.284 0l28 28-1.414 1.414L0 2.544v2.12l26.87 26.87-1.414 1.415L0 7.655v2.12l25.456 25.456-1.414 1.415L0 12.77v2.123l24.042 24.042-1.414 1.415L0 17.884v2.123l22.627 22.627-1.414 1.415L0 22.997v2.12l21.213 21.213-1.415 1.415L0 28.11v2.123l19.8 19.8-1.415 1.413L0 33.22v2.123l18.384 18.384-1.414 1.414L0 38.335v2.12l16.97 16.97-1.414 1.415L0 43.447v2.12l15.556 15.557-1.414 1.415L0 48.562v2.12l14.142 14.142-1.414 1.415L0 53.677v2.12l12.728 12.73-1.414 1.413L0 58.79v2.123l11.314 11.314-1.414 1.414L0 63.923v2.12l9.9 9.9-1.414 1.414L0 69.04v2.123l8.485 8.485-1.414 1.414L0 74.17v2.12l7.07 7.072-1.414 1.414L0 79.283v2.12l5.657 5.657-1.414 1.415L0 84.395v2.12l4.243 4.243-1.415 1.415L0 89.507v2.12l2.828 2.83-1.414 1.413L0 94.62v2.123l1.414 1.414L0 99.77v2.12h2.123L0 104.78v2.123h60v-2.12L30 74.77 60 44.78v-2.122L45.657 57.07 60 42.72v-2.12L35.172 65.6 60 40.88v-2.123L25.657 68.242 60 33.9v-2.12L16.142 70.9 60 27.04v-2.12L6.628 73.53 60 20.158v-2.12L-3.172 76.114 60 12.942v-2.12L-13.03 78.686 60 5.656v-2.12L-20 60.485 60 .485V0h-7.87zM0 107.917h60v-2.12L30 75.782 0 105.796v2.12zm0-2.372v.252h60v-.252L30 75.523 0 105.545zm60-2.622h-2.038l-27.96 27.96h2.037l27.96-27.96zm-5.188 0h-2.037l-27.96 27.96h2.037l27.96-27.96zm-5.188-.002h-2.037l-27.96 27.96h2.037l27.96-27.96zm-5.186-.002h-2.037l-27.96 27.96h2.037l27.96-27.96zm-5.187-.002h-2.037l-27.96 27.96h2.037l27.96-27.96zM29.74 81.52h-2.038l-27.96 27.96h2.037l27.96-27.96zm-5.19 0h-2.035l-27.96 27.96h2.037l27.96-27.96zm-5.186 0H17.33l-27.96 27.96h2.035l27.96-27.96zm-5.186 0h-2.035l-27.96 27.96h2.037l27.96-27.96zm-5.186 0H8.956l-27.96 27.96h2.037l27.96-27.96z' fill='%23222222' fill-opacity='0.3' fill-rule='evenodd'/%3E%3C/svg%3E");
+}
+
+/* Glass effect for cards */
+.glass-effect {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* Custom card styles */
+.card-premium {
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 
+    0 4px 6px -1px rgba(0, 0, 0, 0.05),
+    0 2px 4px -1px rgba(0, 0, 0, 0.03),
+    0 -2px 0 0 rgba(255, 255, 255, 0.15) inset;
+}
+
+.dark .card-premium {
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow: 
+    0 4px 6px -1px rgba(0, 0, 0, 0.2),
+    0 2px 4px -1px rgba(0, 0, 0, 0.1),
+    0 -1px 0 0 rgba(255, 255, 255, 0.05) inset;
+}
+
+/* Glossy gradient border */
+.gradient-border {
+  position: relative;
+  border-radius: 0.75rem;
+}
+
+.gradient-border::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: -1px;
+  right: -1px;
+  bottom: -1px;
+  background: linear-gradient(to bottom right, var(--tw-gradient-from), var(--tw-gradient-to));
+  border-radius: 0.75rem;
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* Shimmer animation */
+@keyframes shimmer {
+  0% { background-position: -1000px 0; }
+  100% { background-position: 1000px 0; }
+}
+
+.shimmer {
+  animation: shimmer 2s infinite linear;
+  background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.15) 50%, rgba(255,255,255,0) 100%);
+  background-size: 1000px 100%;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.4);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(156, 163, 175, 0.6);
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(75, 85, 99, 0.4);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(75, 85, 99, 0.6);
 }
