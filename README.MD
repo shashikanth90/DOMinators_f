@@ -33,7 +33,7 @@ Start the development server:
 npm run dev
  
 
-Open your browser and navigate to http://localhost:5173 (or the port specified in the terminal).
+Open your browser and navigate to http://localhost:5173 .
 
 
 Usage
