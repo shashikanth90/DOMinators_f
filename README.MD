@@ -1,22 +1,55 @@
- 
-User Story
-Title: Manage Personal Financial Portfolio
-As a user:
-I want to track my net worth so that I can monitor my financial health over time.
+INVESTO - A Unified Platform for Complete Financial Portfolio Management
 
-Acceptance Criteria: I can view a summary of my total assets and liabilities, updated periodically.
-I want to record my income and expenses so that I can analyze my cash flow over specific time periods.
+Overview
 
-Acceptance Criteria: I can add, edit, and view transactions categorized as income, expenses, investments, or withdrawals.
-I want to track my investments so that I can see the performance of my holdings and their contribution to my net worth.
+INVESTO is a web-based application designed to help users manage and track their financial health. Built using React, Vite, JSX, and Tailwind CSS, INVESTO provides a simple and intuitive interface to monitor net worth, record transactions, track investments, and analyze portfolio performance over time. This platform empowers users to make informed financial decisions by offering a comprehensive view of their assets, liabilities, income, expenses, and investment holdings.
 
-Acceptance Criteria: I can register my holdings, including the type of asset, quantity, and purchase price.
-I want to classify my assets into categories like stocks, mutual funds, bonds, and cash so that I can better understand my portfolio composition.
+Features
 
-Acceptance Criteria: I can view a breakdown of my investments by asset type.
-I want to analyze the gains and flows of my holdings over time so that I can make informed investment decisions.
 
-Acceptance Criteria: I can view percentage changes, gains, and cash flows for each holding over a selected time period.
-I want a simple and intuitive web interface so that I can easily register, view, and manage my financial data.
 
-Acceptance Criteria: The dashboard provides clear navigation for adding holdings, viewing summaries, and analyzing performance.
+
+
+View a summary of total assets and liabilities, updated periodically.
+
+
+
+Record, edit, and view transactions categorized as gains/losses, investments, or withdrawals.
+
+
+
+Register and manage holdings with details like asset type, quantity, and purchase price.
+
+
+
+Classify assets into categories (stocks, mutual funds, bonds, cash) for better portfolio composition.
+
+
+
+Analyze investment performance with breakdowns by asset type, percentage changes, gains, and cash flows over selected time periods.
+
+
+
+Intuitive dashboard with clear navigation for adding holdings, viewing summaries, and analyzing performance.
+
+Prerequisites
+
+Before setting up and running INVESTO, ensure you have the following installed on your system:
+
+
+
+
+
+Node.js (v16.x or later) - Download
+
+
+
+npm (comes with Node.js) or yarn - Package managers for dependencies.
+
+
+
+Git - For version control and cloning the repository.
+
+
+
+A modern web browser (Chrome, Firefox, Edge) for testing the application.
