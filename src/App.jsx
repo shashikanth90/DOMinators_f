@@ -1,11 +1,15 @@
-import { useState } from "react";
-import { Button } from "@/components/ui/button"
+import { useState, useEffect } from "react";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
+import { useAuth } from "./context/AuthContext";
 import BrowseAssets from "./components/BrowseAssets";
 import Holdings from "./components/Holdings";
 import Transactions from "./components/Transactions";
 import Dashboard from "./components/Dashboard";
+import SignIn from "./components/SignIn";
+import ProtectedRoute from "./components/ProtectedRoute";
 import { 
   LayoutDashboard, 
   Search, 
@@ -14,10 +18,12 @@ import {
   ArrowLeftFromLine, 
   ArrowRightFromLine,
   BarChart3,
-  Settings
+  Settings,
+  LogOut
 } from "lucide-react";
 
-function App() {
+function MainApp() {
+  const { logout } = useAuth();
   const [activePage, setActivePage] = useState("dashboard");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
@@ -137,7 +143,7 @@ function App() {
         </nav>
 
         {/* Bottom Area */}
-        <div className="mt-auto border-t p-4">
+        <div className="mt-auto border-t p-4 space-y-2">
           <button
             className="flex items-center w-full p-2.5 rounded-lg transition-all duration-200 hover:bg-gray-100 text-gray-600"
           >
@@ -146,6 +152,18 @@ function App() {
             </div>
             {!sidebarCollapsed && (
               <span className="ml-3">Settings</span>
+            )}
+          </button>
+          
+          <button
+            onClick={logout}
+            className="flex items-center w-full p-2.5 rounded-lg transition-all duration-200 hover:bg-gray-100 text-rose-600"
+          >
+            <div className="flex items-center justify-center h-6 w-6 text-rose-500">
+              <LogOut />
+            </div>
+            {!sidebarCollapsed && (
+              <span className="ml-3">Sign Out</span>
             )}
           </button>
         </div>
@@ -158,7 +176,33 @@ function App() {
         </div>
       </div>
     </div>
-  )
+  );
+}
+
+function App() {
+  const { user, loading } = useAuth();
+  const location = useLocation();
+
+  // Show loading spinner while checking authentication
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  return (
+    <Routes>
+      <Route path="/signin" element={user ? <Navigate to="/" /> : <SignIn />} />
+      <Route path="/" element={
+        <ProtectedRoute>
+          <MainApp />
+        </ProtectedRoute>
+      } />
+      <Route path="*" element={<Navigate to={user ? "/" : "/signin"} />} />
+    </Routes>
+  );
 }
 
 export default App;
