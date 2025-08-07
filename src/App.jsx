@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { useAuth } from "./context/AuthContext";
+import { useTheme } from "./context/ThemeContext";
 import BrowseAssets from "./components/BrowseAssets";
 import Holdings from "./components/Holdings";
 import Transactions from "./components/Transactions";
@@ -19,11 +20,14 @@ import {
   ArrowRightFromLine,
   BarChart3,
   Settings,
-  LogOut
+  LogOut,
+  Moon,
+  Sun
 } from "lucide-react";
 
 function MainApp() {
   const { logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const [activePage, setActivePage] = useState("dashboard");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
@@ -62,16 +66,16 @@ function MainApp() {
   const activeComponent = navigationItems.find(item => item.id === activePage)?.component || <Dashboard />;
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
       {/* Sidebar */}
       <motion.div 
         initial={{ width: sidebarCollapsed ? 80 : 240 }}
         animate={{ width: sidebarCollapsed ? 80 : 240 }}
         transition={{ duration: 0.3, ease: "easeInOut" }}
-        className="h-screen bg-white border-r shadow-sm flex flex-col z-30"
+        className="h-screen bg-white border-r shadow-sm flex flex-col z-30 dark:bg-gray-800 dark:border-gray-700"
       >
         {/* Logo Area */}
-        <div className="p-4 flex items-center justify-between border-b">
+        <div className="p-4 flex items-center justify-between border-b dark:border-gray-700">
           {!sidebarCollapsed && (
             <div className="flex items-center gap-2">
               <div className="h-8 w-8 rounded-md bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
@@ -89,12 +93,12 @@ function MainApp() {
           )}
           <button 
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)} 
-            className="h-8 w-8 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors"
+            className="h-8 w-8 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center justify-center transition-colors"
           >
             {sidebarCollapsed ? (
-              <ArrowRightFromLine className="h-4 w-4 text-gray-500" />
+              <ArrowRightFromLine className="h-4 w-4 text-gray-500 dark:text-gray-400" />
             ) : (
-              <ArrowLeftFromLine className="h-4 w-4 text-gray-500" />
+              <ArrowLeftFromLine className="h-4 w-4 text-gray-500 dark:text-gray-400" />
             )}
           </button>
         </div>
@@ -112,12 +116,12 @@ function MainApp() {
                       "flex items-center w-full p-2.5 rounded-lg transition-all duration-200",
                       isActive 
                         ? `bg-gradient-to-r ${item.color} text-white font-medium` 
-                        : "hover:bg-gray-100 text-gray-600"
+                        : "hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300"
                     )}
                   >
                     <div className={cn(
                       "flex items-center justify-center h-6 w-6",
-                      isActive ? "text-white" : `text-gray-500 group-hover:text-${item.color.split("-")[1]}-500`
+                      isActive ? "text-white" : `text-gray-500 dark:text-gray-400 group-hover:text-${item.color.split("-")[1]}-500`
                     )}>
                       {item.icon}
                     </div>
@@ -142,12 +146,25 @@ function MainApp() {
           </ul>
         </nav>
 
-        {/* Bottom Area */}
-        <div className="mt-auto border-t p-4 space-y-2">
+        {/* Bottom Area with Theme Toggle */}
+        <div className="mt-auto border-t p-4 space-y-2 dark:border-gray-700">
+          {/* Theme Toggle Button */}
           <button
-            className="flex items-center w-full p-2.5 rounded-lg transition-all duration-200 hover:bg-gray-100 text-gray-600"
+            onClick={toggleTheme}
+            className="flex items-center w-full p-2.5 rounded-lg transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300"
           >
-            <div className="flex items-center justify-center h-6 w-6 text-gray-500">
+            <div className="flex items-center justify-center h-6 w-6 text-gray-500 dark:text-gray-400">
+              {theme === 'dark' ? <Sun className="text-amber-400" /> : <Moon className="text-indigo-600" />}
+            </div>
+            {!sidebarCollapsed && (
+              <span className="ml-3">{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>
+            )}
+          </button>
+          
+          <button
+            className="flex items-center w-full p-2.5 rounded-lg transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300"
+          >
+            <div className="flex items-center justify-center h-6 w-6 text-gray-500 dark:text-gray-400">
               <Settings />
             </div>
             {!sidebarCollapsed && (
@@ -157,9 +174,9 @@ function MainApp() {
           
           <button
             onClick={logout}
-            className="flex items-center w-full p-2.5 rounded-lg transition-all duration-200 hover:bg-gray-100 text-rose-600"
+            className="flex items-center w-full p-2.5 rounded-lg transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-700 text-rose-600 dark:text-rose-500"
           >
-            <div className="flex items-center justify-center h-6 w-6 text-rose-500">
+            <div className="flex items-center justify-center h-6 w-6 text-rose-500 dark:text-rose-400">
               <LogOut />
             </div>
             {!sidebarCollapsed && (
@@ -170,7 +187,7 @@ function MainApp() {
       </motion.div>
 
       {/* Main Content */}
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto dark:bg-gray-900">
         <div className="h-full">
           {activeComponent}
         </div>
@@ -186,8 +203,8 @@ function App() {
   // Show loading spinner while checking authentication
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      <div className="flex items-center justify-center h-screen bg-gray-50 dark:bg-gray-900">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary dark:border-blue-400"></div>
       </div>
     );
   }
