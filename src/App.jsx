@@ -9,6 +9,7 @@ import BrowseAssets from "./components/BrowseAssets";
 import Holdings from "./components/Holdings";
 import Transactions from "./components/Transactions";
 import Dashboard from "./components/Dashboard";
+import ChatBot from "./components/ChatBot"
 import SignIn from "./components/SignIn";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { 
@@ -24,7 +25,8 @@ import {
   Moon,
   Sun,
   CircleDollarSign,
-  BellRing
+  BellRing,
+  Bot
 } from "lucide-react";
 
 function MainApp() {
@@ -62,6 +64,13 @@ function MainApp() {
       icon: <Receipt />,
       color: "from-purple-500 to-violet-600",
       component: <Transactions />
+    },
+    {
+      id: "chat",
+      name: "Investo Bot",
+      icon: <Bot />,
+      color: "from-purple-500 to-violet-600",
+      component: <ChatBot />
     }
   ];
 
@@ -302,9 +311,9 @@ function App() {
     <Routes>
       <Route path="/signin" element={user ? <Navigate to="/" /> : <SignIn />} />
       <Route path="/" element={
-        <ProtectedRoute>
+        // <ProtectedRoute>
           <MainApp />
-        </ProtectedRoute>
+        // </ProtectedRoute>
       } />
       <Route path="*" element={<Navigate to={user ? "/" : "/signin"} />} />
     </Routes>

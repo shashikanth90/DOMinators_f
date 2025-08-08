@@ -95,8 +95,8 @@ export default function SignIn() {
           variants={containerVariants}
         >
           <motion.div variants={itemVariants} className="mb-8 text-center">
-            <h1 className="text-3xl font-bold tracking-tight mb-2 flex items-center justify-center">
-              <BadgeDollarSign className="h-8 w-8 mr-2 text-primary" />
+            <h1 className="text-3xl font-bold tracking-tight mb-2 flex items-center text-black justify-center">
+              <BadgeDollarSign className="h-8 w-8 mr-2 text-black" />
               <span>Investo</span>
             </h1>
             <p className="text-gray-500">Sign in to access your financial dashboard</p>
